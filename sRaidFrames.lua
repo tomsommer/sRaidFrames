@@ -1,8 +1,8 @@
 ﻿local select, next, pairs, tinsert, tconcat, tonumber, ceil, fmod = select, next, pairs, tinsert, table.concat, tonumber, ceil, math.fmod
 local InCombatLockdown, IsInInstance, CheckInteractDistance, IsSpellInRange, IsRaidLeader, IsRaidOfficer =
       InCombatLockdown, IsInInstance, CheckInteractDistance, IsSpellInRange, IsRaidLeader, IsRaidOfficer
-local GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumRaidMembers, GetRaidRosterInfo =
-      GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumRaidMembers, GetRaidRosterInfo
+local GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumGroupMembers, GetRaidRosterInfo =
+      GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumGroupMembers, GetRaidRosterInfo
 local UnitClass, UnitInRange, UnitIsVisible, UnitIsUnit, UnitName, UnitIsDead, UnitIsGhost, UnitIsConnected, UnitIsAFK =
       UnitClass, UnitInRange, UnitIsVisible, UnitIsUnit, UnitName, UnitIsDead, UnitIsGhost, UnitIsConnected, UnitIsAFK
 local UnitHealth, UnitHealthMax, UnitPowerType, UnitMana, UnitManaMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace =
@@ -38,10 +38,20 @@ sRaidFrames = LibStub("AceAddon-3.0"):NewAddon("sRaidFrames",
 
 local sRaidFrames = sRaidFrames
 
+local SPELL_POWER_MANA = 0
+local SPELL_POWER_RAGE = 1
+local SPELL_POWER_ENERGY = 3
+local SPELL_POWER_RUNIC_POWER = 6
+
 local SpellCache = setmetatable({}, {
 	__index = function(table, id)
-		table[id] = GetSpellInfo(id)
-		return table[id]
+		local name = GetSpellInfo(id)
+		if not name then
+			print("sRaidFrames: spell was removed", id)
+		else
+			table[id] = name
+		end
+		return name
 	end
 })
 
@@ -73,7 +83,7 @@ local defaults = { profile = {
 	BuffDisplayOptions	= {},
 	DebuffFilter		= {},
 	DebuffWhitelist		= {},
-	PowerFilter			= {[SPELL_POWER_MANA] = true,[SPELL_POWER_RAGE] = false, [SPELL_POWER_ENERGY] = false, [SPELL_POWER_RUNIC_POWER] = false},
+	PowerFilter			= {[SPELL_POWER_MANA] = true, [SPELL_POWER_RAGE] = false, [SPELL_POWER_ENERGY] = false, [SPELL_POWER_RUNIC_POWER] = false},
 	RangeCheck 			= true,
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
@@ -208,8 +218,8 @@ function sRaidFrames:OnInitialize()
 	end
 
 	self.cooldownSpells = {}
-	self.cooldownSpells["WARLOCK"] = SpellCache[27239] -- Soulstone Resurrection
-	self.cooldownSpells["DRUID"] = SpellCache[26994] -- Rebirth
+	-- self.cooldownSpells["WARLOCK"] = SpellCache[27239] -- Soulstone Resurrection
+	-- self.cooldownSpells["DRUID"] = SpellCache[26994] -- Rebirth
 	self.cooldownSpells["SHAMAN"] = SpellCache[20608] -- Reincarnation
 	self.cooldownSpells["PALADIN"] = SpellCache[19753] -- Divine Intervention
 
@@ -239,35 +249,35 @@ function sRaidFrames:OnInitialize()
 	
 	local statusSpellTable = {
 		[19753] = true, -- Divine Intervention
-		[35079] = true, -- Misdirection
+		--[35079] = true, -- Misdirection
 		[5384] = true, -- Feign Death
-		[3411] = true, -- Intervene
-		[29166] = true, -- Innervate
+	--	[3411] = true, -- Intervene
+	--	[29166] = true, -- Innervate
 		[20711] = true, -- Spirit of Redemption
 		[871] = true, -- Shield Wall
 		[12975] = true, -- Last Stand
-		[45438] = true, -- Ice Block
-		[40733] = true, -- Divine Shield
-		[26889] = true, -- Vanish
-		[39666] = true, -- Cloak of Shadows
+		-- [45438] = true, -- Ice Block
+		--[40733] = true, -- Divine Shield
+	-- 	[26889] = true, -- Vanish
+		-- [39666] = true, -- Cloak of Shadows
 		[66] = true, -- Invisibility
 		[1787] = true, -- Stealth
-		[38541] = true, -- Evasion
-		[10060] = true, -- Power Infusion
-		[32182] = true, -- Heroism
-		[2825] = true, -- Bloodlust
+	--	[38541] = true, -- Evasion
+	--	[10060] = true, -- Power Infusion
+	--	[32182] = true, -- Heroism
+	--	[2825] = true, -- Bloodlust
 		[6346] = true, -- Fear Ward
 		[15473] = true, -- Shadowform
 		[498] = true, -- Divine Protection
 		[10278] = true, -- Hand of Protection
 		[22812] = true, -- Barkskin
-		[33206] = true, -- Pain Suppression
-		[61336] = true, -- Survival Instincts
-		[55233] = true, -- Vampiric Blood
-		[48792] = true, -- Icebound Fortitude
-		[48707] = true, -- Anti-Magic Shell
-		[51271] = true, -- Unbreakable Armor
-		[47788] = true, -- Guardian Spirit
+	--	[33206] = true, -- Pain Suppression
+	--	[61336] = true, -- Survival Instincts
+	--	[55233] = true, -- Vampiric Blood
+	--	[48792] = true, -- Icebound Fortitude
+	--	[48707] = true, -- Anti-Magic Shell
+	--	[51271] = true, -- Unbreakable Armor
+		--[47788] = true, -- Guardian Spirit
 	}
 	self.statusSpellTable = {}
 	for k in pairs(statusSpellTable) do
@@ -338,7 +348,7 @@ function sRaidFrames:OnInitialize()
 	-- Icebound Fortitude
 	self:AddStatusMap("Buff_48792", 53, {"statusbar"}, L["IBF"], {r=1,g=1,b=1,a=1})
 	-- Vampiric Blood
-	self:AddStatusMap("Buff_55233", 52, {"statusbar"}, SpellCache[55233], {r=1,g=1,b=1,a=1})
+	--self:AddStatusMap("Buff_55233", 52, {"statusbar"}, SpellCache[55233], {r=1,g=1,b=1,a=1})
 	-- Survival Instincts
 	self:AddStatusMap("Buff_61336", 52, {"statusbar"}, SpellCache[61336], {r=1,g=1,b=1,a=1})
 	-- Unbreakable Armor
@@ -351,20 +361,20 @@ function sRaidFrames:OnInitialize()
 	-- Cloak of Shadows
 	self:AddStatusMap("Buff_39666", 50, {"statusbar"}, SpellCache[39666], {r=1,g=1,b=1,a=1})
 	-- Divine Shield
-	self:AddStatusMap("Buff_40733", 50, {"statusbar"}, SpellCache[40733], {r=1,g=1,b=1,a=1})
+	--self:AddStatusMap("Buff_40733", 50, {"statusbar"}, SpellCache[40733], {r=1,g=1,b=1,a=1})
 	-- Power Infusion
 	self:AddStatusMap("Buff_10060", 50, {"statusbar"}, L["Infused"], {r=1,g=1,b=1,a=1})
 
 	-- Misdirection
-	self:AddStatusMap("Buff_35079", 45, {"statusbar"}, SpellCache[35079], {r=0,g=1,b=0,a=1})
+	-- self:AddStatusMap("Buff_35079", 45, {"statusbar"}, SpellCache[35079], {r=0,g=1,b=0,a=1})
 	-- Intervene
-	self:AddStatusMap("Buff_3411", 45, {"statusbar"}, SpellCache[3411], {r=0,g=1,b=0,a=1})
+	--self:AddStatusMap("Buff_3411", 45, {"statusbar"}, SpellCache[3411], {r=0,g=1,b=0,a=1})
 	-- Fear Ward
 	self:AddStatusMap("Buff_6346", 40, {"statusbar"}, SpellCache[6346], {r=1,g=1,b=0,a=1})
 	-- Heroism
-	self:AddStatusMap("Buff_32182", 39, {"statusbar"}, SpellCache[32182], {r=1,g=1,b=1,a=1})
+	--self:AddStatusMap("Buff_32182", 39, {"statusbar"}, SpellCache[32182], {r=1,g=1,b=1,a=1})
 	-- Bloodlust
-	self:AddStatusMap("Buff_2825", 39, {"statusbar"}, SpellCache[2825], {r=1,g=1,b=1,a=1})
+	--self:AddStatusMap("Buff_2825", 39, {"statusbar"}, SpellCache[2825], {r=1,g=1,b=1,a=1})
 
 	self:AddStatusMap("Heal", 36, {"statusbar"}, "Inc. heal", {r = 0, g = 1, b = 0})
 	-- Shadowform
@@ -508,7 +518,7 @@ function sRaidFrames:OnEnable()
 	self.PlayerClass = select(2, UnitClass("player"))
 	
 	self:InitRangeChecks()
-	self:RegisterEvent("PLAYER_TALENT_UPDATE", "InitRangeChecks")
+--	self:RegisterEvent("PLAYER_TALENT_UPDATE", "InitRangeChecks")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "InitRangeChecks")
 
 	self:RegisterBucketEvent("RAID_ROSTER_UPDATE", 0.2, "UpdateRoster")
@@ -648,7 +658,7 @@ function sRaidFrames:ScanSpellbookForRange()
 	local i = 1
 	while true do
 		local SpellId = i
-		local name, _, _, _, _, _, _, _, maxRange = GetSpellInfo(SpellId, BOOKTYPE_SPELL)
+		local name, _, _, _, _, _, _, _, maxRange = GetSpellInfo(SpellId)
 		if not name then break end
 		
 		if maxRange and IsSpellInRange(SpellId, "spell", "player") ~= nil then
@@ -662,7 +672,7 @@ end
 do
 	local roster, oldroster = { n = 0 }, {}
 	function sRaidFrames:ScanRoster()
-		local numRaid = GetNumRaidMembers()
+		local numRaid = GetNumGroupMembers()
 		for id, name in pairs(roster) do
 			oldroster[id] = name
 		end
@@ -709,7 +719,7 @@ function sRaidFrames:Roster_UnitLeft(unitid)
 end
 
 function sRaidFrames:UpdateRoster()
-	local inRaid = GetNumRaidMembers() > 0
+	local inRaid = GetNumGroupMembers() > 0
 	local inBG = select(2, IsInInstance()) == "pvp"
 	local inArena = select(2, IsInInstance()) == "arena"
 

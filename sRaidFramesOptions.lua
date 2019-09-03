@@ -1119,7 +1119,7 @@ function sRaidFrames:chatUpdateStatusElements()
 			local id = key:match("^Buff_(%d+)")
 			name = GetSpellInfo(id)
 		end
-		if not self.options.args.advanced.args[key] then
+		if not self.options.args.advanced.args[key] and name then
 			self.options.args.advanced.args[key] = {
 				type = 'group',
 				name = name,
