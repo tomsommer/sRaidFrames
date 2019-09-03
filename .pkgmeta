@@ -1,0 +1,5 @@
+package-as: sRaidFrames
+enable-nolib-creation: yes
+
+ignore:
+  - README.md
