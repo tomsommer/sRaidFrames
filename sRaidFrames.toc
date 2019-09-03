@@ -1,4 +1,12 @@
-﻿## Interface: 11302
+﻿#@retail@
+## Interface: 80200
+#@end-retail@
+
+#@non-retail@
+# ## Interface: 11302
+#@end-non-retail@
+
+
 ## Title: sRaidFrames
 ## Notes: CT_RaidAssist style raid frames
 ## Notes-koKR: 공격대 도우미 스타일의 공격대 프레임
@@ -9,6 +17,7 @@
 ## X-Category: Raid
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, AceGUI-3.0-Spell-EditBox, LibHealComm-4.0, LibResComm-1.0, LibBanzai-2.0, LibDBIcon-1.0, LibTalentQuery-1.0, LibGroupTalents-1.0, SharedMedia, Clique
 ## SavedVariables: sRaidFramesDB
+
 
 #@no-lib-strip@
 libs\LibStub\LibStub.lua
@@ -35,11 +44,13 @@ libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
 libs\AceGUI-3.0-SpellEditBox\AceGUI-3.0-Spell-EditBox.xml
 
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+#@non-retail@
 libs\LibBanzai-2.0\lib.xml
 libs\LibClassicHealComm-1.0\lib.xml
 #libs\LibResComm-1.0\lib.xml
 #libs\LibTalentQuery-1.0\lib.xml
 #libs\LibGroupTalents-1.0\lib.xml
+#@end-non-retail@
 #@end-no-lib-strip@
 
 locales\locale.xml
