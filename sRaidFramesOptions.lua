@@ -242,10 +242,10 @@ sRaidFrames.options = {
 					type = "multiselect",
 					desc = L["Toggle the display of certain power types (Mana, Rage, Energy)"],
 					get = function(info, key)
-						return sRaidFrames.opt.PowerFilter[tonumber(key)]
+						return sRaidFrames.opt.PowerFilter[key]
 					end,
 					set = function(info, key, value)
-						sRaidFrames.opt.PowerFilter[tonumber(key)] = value
+						sRaidFrames.opt.PowerFilter[key] = value
 						sRaidFrames:UpdateAllUnits()
 					end,
 					values = {
