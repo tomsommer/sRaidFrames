@@ -182,6 +182,7 @@ sRaidFrames.options = {
 				},
 				
 				frequentUpdates = {
+					disabled = sRaidFrames.isClassic,
 					name = L["Frequent Health Updates"],
 					type = "toggle",
 					desc = L["Accelerate updating of health bars using timed updates instead of relying on the events send by the game."],

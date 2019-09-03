@@ -1,6 +1,12 @@
 local L = LibStub("AceLocale-3.0"):GetLocale("sRaidFrames")
 local sRaidFrames = sRaidFrames
 
+if sRaidFrames.isClassic then
+	local function GetNumClasses()
+		return 9
+	end
+end
+
 function sRaidFrames:RegisterGroupSetup(name)
 	self.opt.GroupSetups[name] = {}
 	self:chatUpdateFilterMenu()
@@ -347,9 +353,6 @@ function sRaidFrames:chatUpdateFilterMenu()
 							end,
 				order = 200,
 			}
-
-
-
 
 			self.options.args.sets.args["set".. i].args["frame".. id].args.classes = {
 				type = 'multiselect',

@@ -149,7 +149,7 @@ function sRaidFrames:OnInitialize()
 	
 	sRaidFrames.options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	sRaidFrames.options.args.profiles.order = 1000
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("sRaidFrames", sRaidFrames.options, {"/sraidframes", "/srf"})
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("sRaidFrames", sRaidFrames.options, {"/sraidframes", "/srf", "srf", "sraidframes"})
 	
 	-- Upgrade Config
 	local cv = self.db.profile.configVersion or 0
@@ -169,6 +169,7 @@ function sRaidFrames:OnInitialize()
 
 	-- Init variables
 	self.enabled = false
+	self.isClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 	self.frames, self.groupframes = {}, {}, {}
 	self.res, self.RangeChecks = {}, {}
 	self.FramesByUnit = {}
@@ -242,38 +243,42 @@ function sRaidFrames:OnInitialize()
 		},
 	}
 	
-	local statusSpellTable = {
-		[19753] = true, -- Divine Intervention
-		--[35079] = true, -- Misdirection
-		[5384] = true, -- Feign Death
-	--	[3411] = true, -- Intervene
-	--	[29166] = true, -- Innervate
-		[20711] = true, -- Spirit of Redemption
-		[871] = true, -- Shield Wall
-		[12975] = true, -- Last Stand
-		-- [45438] = true, -- Ice Block
-		--[40733] = true, -- Divine Shield
-	-- 	[26889] = true, -- Vanish
-		-- [39666] = true, -- Cloak of Shadows
-		[66] = true, -- Invisibility
-		[1787] = true, -- Stealth
-	--	[38541] = true, -- Evasion
-	--	[10060] = true, -- Power Infusion
-	--	[32182] = true, -- Heroism
-	--	[2825] = true, -- Bloodlust
-		[6346] = true, -- Fear Ward
-		[15473] = true, -- Shadowform
-		[498] = true, -- Divine Protection
-		[10278] = true, -- Hand of Protection
-		[22812] = true, -- Barkskin
-	--	[33206] = true, -- Pain Suppression
-	--	[61336] = true, -- Survival Instincts
-	--	[55233] = true, -- Vampiric Blood
-	--	[48792] = true, -- Icebound Fortitude
-	--	[48707] = true, -- Anti-Magic Shell
-	--	[51271] = true, -- Unbreakable Armor
-		--[47788] = true, -- Guardian Spirit
-	}
+	local statusSpellTable = {}
+	if sRaidFrames.isClassic then
+		local statusSpellTable = {
+			[19753] = true, -- Divine Intervention
+			--[35079] = true, -- Misdirection
+			[5384] = true, -- Feign Death
+		--	[3411] = true, -- Intervene
+		--	[29166] = true, -- Innervate
+			[20711] = true, -- Spirit of Redemption
+			[871] = true, -- Shield Wall
+			[12975] = true, -- Last Stand
+			-- [45438] = true, -- Ice Block
+			--[40733] = true, -- Divine Shield
+		-- 	[26889] = true, -- Vanish
+			-- [39666] = true, -- Cloak of Shadows
+			[66] = true, -- Invisibility
+			[1787] = true, -- Stealth
+		--	[38541] = true, -- Evasion
+		--	[10060] = true, -- Power Infusion
+		--	[32182] = true, -- Heroism
+		--	[2825] = true, -- Bloodlust
+			[6346] = true, -- Fear Ward
+			[15473] = true, -- Shadowform
+			[498] = true, -- Divine Protection
+			[10278] = true, -- Hand of Protection
+			[22812] = true, -- Barkskin
+		--	[33206] = true, -- Pain Suppression
+		--	[61336] = true, -- Survival Instincts
+		--	[55233] = true, -- Vampiric Blood
+		--	[48792] = true, -- Icebound Fortitude
+		--	[48707] = true, -- Anti-Magic Shell
+		--	[51271] = true, -- Unbreakable Armor
+			--[47788] = true, -- Guardian Spirit
+		}
+	end
+
 	self.statusSpellTable = {}
 	for k in pairs(statusSpellTable) do
 		self.statusSpellTable[SpellCache[k]] = k
@@ -314,67 +319,69 @@ function sRaidFrames:OnInitialize()
 	self:AddStatusMap("Debuff_Disease", 53, {"background"}, "Diseased", {r=1, g=1, b=0, a=0.5})
 	self:AddStatusMap("Debuff_Poison", 52, {"background"}, "Poisoned", {r=0, g=0.5, b=0, a=0.5})
 
-	-- Shield Wall
-	self:AddStatusMap("Buff_871", 53, {"statusbar"}, SpellCache[871], {r=1,g=1,b=1,a=1})
-	-- Last Stand
-	self:AddStatusMap("Buff_12975", 52, {"statusbar"}, SpellCache[12975], {r=1,g=1,b=1,a=1})
-	-- Vanish
-	self:AddStatusMap("Buff_26889", 51, {"statusbar"}, L["Vanished"], {r=0,g=1,b=0,a=1})
-	-- Invisibility
-	self:AddStatusMap("Buff_66", 51, {"statusbar"}, SpellCache[66], {r=0,g=1,b=0,a=1})
-	-- Evasion
-	self:AddStatusMap("Buff_38541", 50, {"statusbar"}, SpellCache[38541], {r=1,g=1,b=0,a=1})
-	-- Stealth
-	self:AddStatusMap("Buff_1787", 50, {"statusbar"}, L["Stealthed"], {r=1,g=1,b=1,a=1})
-	-- Innervate
-	self:AddStatusMap("Buff_29166", 51, {"statusbar"}, L["Innervating"], {r=0,g=1,b=0,a=1})
-	-- Ice Block
-	self:AddStatusMap("Buff_45438", 50, {"statusbar"}, SpellCache[45438], {r=1,g=1,b=1,a=1})
-	-- Divine Protection
-	self:AddStatusMap("Buff_498", 53, {"statusbar"}, SpellCache[498], {r=1,g=1,b=1,a=1})
-	-- Hand of Protection
-	self:AddStatusMap("Buff_10278", 53, {"statusbar"}, L["Protection"], {r=1,g=1,b=1,a=1})
-	-- Barkskin
-	self:AddStatusMap("Buff_22812", 52, {"statusbar"}, SpellCache[22812], {r=1,g=1,b=1,a=1})
-	-- Pain Suppression
-	self:AddStatusMap("Buff_33206", 53, {"statusbar"}, SpellCache[33206], {r=1,g=1,b=1,a=1})
-	-- Anti-Magic Shell
-	self:AddStatusMap("Buff_48707", 52, {"statusbar"}, SpellCache[48707], {r=1,g=1,b=1,a=1})
-	-- Icebound Fortitude
-	self:AddStatusMap("Buff_48792", 53, {"statusbar"}, L["IBF"], {r=1,g=1,b=1,a=1})
-	-- Vampiric Blood
-	--self:AddStatusMap("Buff_55233", 52, {"statusbar"}, SpellCache[55233], {r=1,g=1,b=1,a=1})
-	-- Survival Instincts
-	self:AddStatusMap("Buff_61336", 52, {"statusbar"}, SpellCache[61336], {r=1,g=1,b=1,a=1})
-	-- Unbreakable Armor
-	self:AddStatusMap("Buff_51271", 53, {"statusbar"}, L["Unbreakable"], {r=1,g=1,b=1,a=1})
-	-- Guardian Spirit
-	self:AddStatusMap("Buff_47788", 53, {"statusbar"}, L["Guardian"], {r=1,g=1,b=1,a=1})
-	
-	-- Feign Death
-	self:AddStatusMap("Buff_5384", 50, {"statusbar"}, SpellCache[5384], {r=0,g=1,b=0,a=1})
-	-- Cloak of Shadows
-	self:AddStatusMap("Buff_39666", 50, {"statusbar"}, SpellCache[39666], {r=1,g=1,b=1,a=1})
-	-- Divine Shield
-	--self:AddStatusMap("Buff_40733", 50, {"statusbar"}, SpellCache[40733], {r=1,g=1,b=1,a=1})
-	-- Power Infusion
-	self:AddStatusMap("Buff_10060", 50, {"statusbar"}, L["Infused"], {r=1,g=1,b=1,a=1})
+	if sRaidFrames.isClassic then
+		-- Shield Wall
+		self:AddStatusMap("Buff_871", 53, {"statusbar"}, SpellCache[871], {r=1,g=1,b=1,a=1})
+		-- Last Stand
+		self:AddStatusMap("Buff_12975", 52, {"statusbar"}, SpellCache[12975], {r=1,g=1,b=1,a=1})
+		-- Vanish
+		self:AddStatusMap("Buff_26889", 51, {"statusbar"}, L["Vanished"], {r=0,g=1,b=0,a=1})
+		-- Invisibility
+		self:AddStatusMap("Buff_66", 51, {"statusbar"}, SpellCache[66], {r=0,g=1,b=0,a=1})
+		-- Evasion
+		self:AddStatusMap("Buff_38541", 50, {"statusbar"}, SpellCache[38541], {r=1,g=1,b=0,a=1})
+		-- Stealth
+		self:AddStatusMap("Buff_1787", 50, {"statusbar"}, L["Stealthed"], {r=1,g=1,b=1,a=1})
+		-- Innervate
+		self:AddStatusMap("Buff_29166", 51, {"statusbar"}, L["Innervating"], {r=0,g=1,b=0,a=1})
+		-- Ice Block
+		self:AddStatusMap("Buff_45438", 50, {"statusbar"}, SpellCache[45438], {r=1,g=1,b=1,a=1})
+		-- Divine Protection
+		self:AddStatusMap("Buff_498", 53, {"statusbar"}, SpellCache[498], {r=1,g=1,b=1,a=1})
+		-- Hand of Protection
+		self:AddStatusMap("Buff_10278", 53, {"statusbar"}, L["Protection"], {r=1,g=1,b=1,a=1})
+		-- Barkskin
+		self:AddStatusMap("Buff_22812", 52, {"statusbar"}, SpellCache[22812], {r=1,g=1,b=1,a=1})
+		-- Pain Suppression
+		self:AddStatusMap("Buff_33206", 53, {"statusbar"}, SpellCache[33206], {r=1,g=1,b=1,a=1})
+		-- Anti-Magic Shell
+		self:AddStatusMap("Buff_48707", 52, {"statusbar"}, SpellCache[48707], {r=1,g=1,b=1,a=1})
+		-- Icebound Fortitude
+		self:AddStatusMap("Buff_48792", 53, {"statusbar"}, L["IBF"], {r=1,g=1,b=1,a=1})
+		-- Vampiric Blood
+		--self:AddStatusMap("Buff_55233", 52, {"statusbar"}, SpellCache[55233], {r=1,g=1,b=1,a=1})
+		-- Survival Instincts
+		self:AddStatusMap("Buff_61336", 52, {"statusbar"}, SpellCache[61336], {r=1,g=1,b=1,a=1})
+		-- Unbreakable Armor
+		self:AddStatusMap("Buff_51271", 53, {"statusbar"}, L["Unbreakable"], {r=1,g=1,b=1,a=1})
+		-- Guardian Spirit
+		self:AddStatusMap("Buff_47788", 53, {"statusbar"}, L["Guardian"], {r=1,g=1,b=1,a=1})
+		
+		-- Feign Death
+		self:AddStatusMap("Buff_5384", 50, {"statusbar"}, SpellCache[5384], {r=0,g=1,b=0,a=1})
+		-- Cloak of Shadows
+		self:AddStatusMap("Buff_39666", 50, {"statusbar"}, SpellCache[39666], {r=1,g=1,b=1,a=1})
+		-- Divine Shield
+		--self:AddStatusMap("Buff_40733", 50, {"statusbar"}, SpellCache[40733], {r=1,g=1,b=1,a=1})
+		-- Power Infusion
+		self:AddStatusMap("Buff_10060", 50, {"statusbar"}, L["Infused"], {r=1,g=1,b=1,a=1})
 
-	-- Misdirection
-	-- self:AddStatusMap("Buff_35079", 45, {"statusbar"}, SpellCache[35079], {r=0,g=1,b=0,a=1})
-	-- Intervene
-	--self:AddStatusMap("Buff_3411", 45, {"statusbar"}, SpellCache[3411], {r=0,g=1,b=0,a=1})
-	-- Fear Ward
-	self:AddStatusMap("Buff_6346", 40, {"statusbar"}, SpellCache[6346], {r=1,g=1,b=0,a=1})
-	-- Heroism
-	--self:AddStatusMap("Buff_32182", 39, {"statusbar"}, SpellCache[32182], {r=1,g=1,b=1,a=1})
-	-- Bloodlust
-	--self:AddStatusMap("Buff_2825", 39, {"statusbar"}, SpellCache[2825], {r=1,g=1,b=1,a=1})
+		-- Misdirection
+		-- self:AddStatusMap("Buff_35079", 45, {"statusbar"}, SpellCache[35079], {r=0,g=1,b=0,a=1})
+		-- Intervene
+		--self:AddStatusMap("Buff_3411", 45, {"statusbar"}, SpellCache[3411], {r=0,g=1,b=0,a=1})
+		-- Fear Ward
+		self:AddStatusMap("Buff_6346", 40, {"statusbar"}, SpellCache[6346], {r=1,g=1,b=0,a=1})
+		-- Heroism
+		--self:AddStatusMap("Buff_32182", 39, {"statusbar"}, SpellCache[32182], {r=1,g=1,b=1,a=1})
+		-- Bloodlust
+		--self:AddStatusMap("Buff_2825", 39, {"statusbar"}, SpellCache[2825], {r=1,g=1,b=1,a=1})
 
-	self:AddStatusMap("Heal", 36, {"statusbar"}, "Inc. heal", {r = 0, g = 1, b = 0})
-	-- Shadowform
-	self:AddStatusMap("Buff_15473", 35, {"statusbar"}, SpellCache[15473], {r=1,g=0,b=0.75,a=1})
-	
+		self:AddStatusMap("Heal", 36, {"statusbar"}, "Inc. heal", {r = 0, g = 1, b = 0})
+		-- Shadowform
+		self:AddStatusMap("Buff_15473", 35, {"statusbar"}, SpellCache[15473], {r=1,g=0,b=0.75,a=1})
+	end
+
 	self:AddStatusMap("Vehicle", 56, {"statusbar"}, "On Vehicle", {r=1,g=1,b=1,a=1})
 
 	self:RegisterStatusElement("border", "Border", 
@@ -603,7 +610,7 @@ function sRaidFrames:DisableFrames()
 
 	self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 
-	if Banzai then
+	if Banzai and self.isClassic then
 		Banzai:UnregisterCallback(sRaidFrames.Banzai_Callback)
 	end
 
@@ -612,14 +619,14 @@ function sRaidFrames:DisableFrames()
 		self.rangeTimer = nil
 	end
 
-	if HealComm then
+	if HealComm and self.isClassic then
 		HealComm.UnregisterCallback(self, "HealComm_DirectHealStart")
 		HealComm.UnregisterCallback(self, "HealComm_DirectHealStop")
 		HealComm.UnregisterCallback(self, "HealComm_DirectHealDelayed")
 		HealComm.UnregisterCallback(self, "HealComm_HealModifierUpdate")
 	end
 	
-	if ResComm then
+	if ResComm and self.isClassic then
 		ResComm.UnregisterCallback(self, "ResComm_ResStart")
 		ResComm.UnregisterCallback(self, "ResComm_ResEnd")
 		ResComm.UnregisterCallback(self, "ResComm_Ressed")
@@ -632,7 +639,7 @@ function sRaidFrames:DisableFrames()
 end
 
 function sRaidFrames:ToggleFrequentUpdates()
-	if self.opt.HealthFrequentUpdates then
+	if self.opt.HealthFrequentUpdates and self.isClassic then
 		self.master:SetScript("OnUpdate", function() sRaidFrames:FrequentHealthUpdate() end)
 	else
 		self.master:SetScript("OnUpdate", nil)
