@@ -78,7 +78,7 @@ local defaults = { profile = {
 	BuffDisplayOptions	= {},
 	DebuffFilter		= {},
 	DebuffWhitelist		= {},
-	PowerFilter			= {["MANA"] = true, ["RAGE"] = false, ["ENERGY"] = false, ["RUNIC_POWER"] = false},
+	PowerFilter			= {[Enum.PowerType.Mana] = true, [Enum.PowerType.Rage] = false, [Enum.PowerType.Energy] = false, [Enum.PowerType.RunicPower] = false},
 	RangeCheck 			= true,
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
@@ -1056,8 +1056,8 @@ function sRaidFrames:UpdateUnitPower(munit)
 	if not self:IsTracking(munit) then return end
 	for _, f in pairs(self:FindUnitFrames(munit)) do
 		local unit = self:GetVehicleUnit(munit)
-		local powerType, powerToken = UnitPowerType(unit)
-		if not self.opt.PowerFilter[powerToken] and not (self.opt.VehicleSwitch and self.opt.VehiclePower and munit ~= unit) then
+		local powerType = UnitPowerType(unit)
+		if not self.opt.PowerFilter[powerType] and not (self.opt.VehicleSwitch and self.opt.VehiclePower and munit ~= unit) then
 			f.mpbar:SetValue(0)
 		else
 			local color = PowerBarColor[powerType]

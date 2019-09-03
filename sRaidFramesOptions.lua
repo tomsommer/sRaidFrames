@@ -249,10 +249,10 @@ sRaidFrames.options = {
 						sRaidFrames:UpdateAllUnits()
 					end,
 					values = {
-						["MANA"] = L["Mana"],
-						["RAGE"] = L["Rage"],
-						["ENERGY"] = L["Energy"],
-						["RUNIC_POWER"] = L["Runic Power"],
+						[Enum.PowerType.Mana] = L["Mana"],
+						[Enum.PowerType.Rage] = L["Rage"],
+						[Enum.PowerType.Energy] = L["Energy"],
+						[Enum.PowerType.RunicPower] = L["Runic Power"],
 					},
 					order = 200,
 				},
