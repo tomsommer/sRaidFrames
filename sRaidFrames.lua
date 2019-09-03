@@ -566,7 +566,7 @@ function sRaidFrames:EnableFrames()
 	self:RegisterEvent("UNIT_EXITED_VEHICLE", "UpdateVehicle")
 	self:RegisterEvent("RAID_TARGET_UPDATE", "UpdateRaidTargets")
 
-	if HealComm then
+	if HealComm and self.isClassic then
 		HealComm.RegisterCallback(self, "HealComm_HealUpdated")
 		HealComm.RegisterCallback(self, "HealComm_HealStarted", "HealComm_HealUpdated")
 		HealComm.RegisterCallback(self, "HealComm_HealStopped", "HealComm_HealUpdated")
@@ -574,7 +574,7 @@ function sRaidFrames:EnableFrames()
 		HealComm.RegisterCallback(self, "HealComm_ModifierChanged")
 	end
 	
-	if ResComm then
+	if ResComm and self.isClassic then
 		ResComm.RegisterCallback(self, "ResComm_ResStart")
 		ResComm.RegisterCallback(self, "ResComm_ResEnd")
 		ResComm.RegisterCallback(self, "ResComm_Ressed")
@@ -582,7 +582,7 @@ function sRaidFrames:EnableFrames()
 		ResComm.RegisterCallback(self, "ResComm_ResExpired")
 	end
 
-	if Banzai then
+	if Banzai and self.isClassic then
 		Banzai:RegisterCallback(sRaidFrames.Banzai_Callback)
 	end
 	
@@ -610,7 +610,7 @@ function sRaidFrames:DisableFrames()
 
 	self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 
-	if Banzai and self.isClassic then
+	if Banzai then
 		Banzai:UnregisterCallback(sRaidFrames.Banzai_Callback)
 	end
 
@@ -619,14 +619,14 @@ function sRaidFrames:DisableFrames()
 		self.rangeTimer = nil
 	end
 
-	if HealComm and self.isClassic then
+	if HealComm then
 		HealComm.UnregisterCallback(self, "HealComm_DirectHealStart")
 		HealComm.UnregisterCallback(self, "HealComm_DirectHealStop")
 		HealComm.UnregisterCallback(self, "HealComm_DirectHealDelayed")
 		HealComm.UnregisterCallback(self, "HealComm_HealModifierUpdate")
 	end
 	
-	if ResComm and self.isClassic then
+	if ResComm then
 		ResComm.UnregisterCallback(self, "ResComm_ResStart")
 		ResComm.UnregisterCallback(self, "ResComm_ResEnd")
 		ResComm.UnregisterCallback(self, "ResComm_Ressed")
