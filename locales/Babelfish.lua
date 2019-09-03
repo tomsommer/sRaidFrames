@@ -18,6 +18,7 @@ local filePrefix = "../"
 local files = {
 	"sRaidFrames.lua",
 	"sRaidFramesGroupFilter.lua",
+	"sRaidFramesHealing.lua",
 	"sRaidFramesLayout.lua",
 	"sRaidFramesOptions.lua",
 }
