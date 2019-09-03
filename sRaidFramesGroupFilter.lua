@@ -348,22 +348,23 @@ function sRaidFrames:chatUpdateFilterMenu()
 				order = 200,
 			}
 
+
+
+
 			self.options.args.sets.args["set".. i].args["frame".. id].args.classes = {
 				type = 'multiselect',
 				name = L["Classes"],
 				desc = L["Classes contained in this frame"],
-				values = {
-					["WARRIOR"] = L["Warriors"],
-					["PALADIN"] = L["Paladins"],
-					["DEATHKNIGHT"] = L["Death Knights"],
-					["SHAMAN"] = L["Shamans"],
-					["PRIEST"] = L["Priests"],
-					["ROGUE"] = L["Rogues"],
-					["HUNTER"] = L["Hunters"],
-					["MAGE"] = L["Mages"],
-					["WARLOCK"] = L["Warlocks"],
-					["DRUID"] = L["Druids"],
-				},
+				values = function() 
+					local classMap = {}
+					for classID = 1, 20 do -- 20 is for GetNumClasses() but that function doesn't exists on Classic
+						local classInfo = C_CreatureInfo.GetClassInfo(classID);
+						if classInfo then
+							classMap[classInfo.classFile] = classInfo.className
+						end
+					end
+					return classMap
+				end,
 				get = function(info, key)
 								local groupFilter = { strsplit(",", data.attributes.groupFilter or "") }
 								for _, _class in pairs(groupFilter) do
