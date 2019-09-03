@@ -38,11 +38,6 @@ sRaidFrames = LibStub("AceAddon-3.0"):NewAddon("sRaidFrames",
 
 local sRaidFrames = sRaidFrames
 
-local SPELL_POWER_MANA = 0
-local SPELL_POWER_RAGE = 1
-local SPELL_POWER_ENERGY = 3
-local SPELL_POWER_RUNIC_POWER = 6
-
 local SpellCache = setmetatable({}, {
 	__index = function(table, id)
 		local name = GetSpellInfo(id)
@@ -83,7 +78,7 @@ local defaults = { profile = {
 	BuffDisplayOptions	= {},
 	DebuffFilter		= {},
 	DebuffWhitelist		= {},
-	PowerFilter			= {[SPELL_POWER_MANA] = true, [SPELL_POWER_RAGE] = false, [SPELL_POWER_ENERGY] = false, [SPELL_POWER_RUNIC_POWER] = false},
+	PowerFilter			= {["MANA"] = true, ["RAGE"] = false, ["ENERGY"] = false, ["RUNIC_POWER"] = false},
 	RangeCheck 			= true,
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
@@ -1061,8 +1056,8 @@ function sRaidFrames:UpdateUnitPower(munit)
 	if not self:IsTracking(munit) then return end
 	for _, f in pairs(self:FindUnitFrames(munit)) do
 		local unit = self:GetVehicleUnit(munit)
-		local powerType = UnitPowerType(unit)
-		if not self.opt.PowerFilter[powerType] and not (self.opt.VehicleSwitch and self.opt.VehiclePower and munit ~= unit) then
+		local powerType, powerToken = UnitPowerType(unit)
+		if not self.opt.PowerFilter[powerToken] and not (self.opt.VehicleSwitch and self.opt.VehiclePower and munit ~= unit) then
 			f.mpbar:SetValue(0)
 		else
 			local color = PowerBarColor[powerType]
