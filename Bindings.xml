@@ -1,0 +1,18 @@
+<Bindings>
+	<Binding name="ShowHideRaidWindows" header="sRaidFrames">
+		if not sRaidFrames.enabled then return end
+		if sRaidFrames.master:IsVisible() then
+			sRaidFrames.master:Hide();
+		else
+			sRaidFrames.master:Show();
+		end
+	</Binding>
+	<Binding name="ToggleBuffDebuffview">
+		sRaidFrames.opt.BuffType = sRaidFrames.opt.BuffType == "debuffs" and "buffs" or "debuffs"
+		sRaidFrames:UpdateAllUnits()
+	</Binding>
+	<Binding name="Toggledisplayofonlydispellabledebuffs">
+		sRaidFrames.opt.ShowOnlyDispellable = not sRaidFrames.opt.ShowOnlyDispellable
+		sRaidFrames:UpdateAllUnits()
+	</Binding>
+</Bindings>
