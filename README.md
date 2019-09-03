@@ -1,6 +1,5 @@
-# sRaidFrames - The Original
-sRaidFrames World of Warcraft addon
+# sRaidFrames 
 
-Currently the plan is to support WoW-Classic.
+World of Warcraft addon
 
 Feel free to submit pull-requests.
