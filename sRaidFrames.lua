@@ -107,41 +107,7 @@ local defaults = { profile = {
 
 sRaidFrames.CONFIG_VERSION = 1
 
-function sRaidFrames:OnInitialize()
-	-- convert Ace2 -> Ace3 config
-	if sRaidFramesDB and sRaidFramesDB.currentProfile then
-		if not sRaidFramesDB.profileKeys then
-			sRaidFramesDB.profileKeys = {}
-		end
-		-- copy stored/configured profiles
-		-- Note: class/* and realm/* values are not changed, 
-		-- since there is no way to determine what they should 
-		-- be for the individual chars.
-		for k, v in pairs(sRaidFramesDB.currentProfile) do
-			local new_value = v
-			if v == "char" then
-				new_value = k
-			end
-			sRaidFramesDB.profileKeys[k] = new_value
-		end
-		sRaidFramesDB.currentProfile = nil
-		
-		-- move actual data
-		-- Only char/ is moved due to the same restrictions as above.
-		for key, data in pairs(sRaidFramesDB.profiles) do
-			if key:find("^char/") then
-				local new_key = key:match("^char/(.+)")
-				sRaidFramesDB.profiles[new_key] = data
-				sRaidFramesDB.profiles[key] = nil
-			end
-		end
-	end
-	
-	local optFunc = function()
-		LibStub("AceConfigDialog-3.0"):Open("sRaidFrames")
-	end
-	self:RegisterChatCommand("srf", optFunc)
-	
+function sRaidFrames:OnInitialize()	
 	self.db = LibStub("AceDB-3.0"):New("sRaidFramesDB", defaults)
 	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileEnable")
 	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileEnable")
