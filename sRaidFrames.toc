@@ -1,4 +1,5 @@
-﻿## Title: sRaidFrames
+﻿## Interface: 11302
+## Title: sRaidFrames
 ## Notes: CT_RaidAssist style raid frames
 ## Notes-koKR: 공격대 도우미 스타일의 공격대 프레임
 ## Notes-zhCN: CT_RaidAssist 风格的团队框体
