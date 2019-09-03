@@ -19,7 +19,9 @@ externals:
    libs/AceGUI-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
    libs/AceLocale-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceLocale-3.0
    libs/AceTimer-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceTimer-3.0
-   libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
-   libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+
+   libs/CallbackHandler-1.0: https://repos.wowace.com/wow/ace3/trunk/CallbackHandler-1.0
+   libs/LibStub: svn://svn.wowace.com/wow/libstub/mainline/tags/1.0
    libs/LibSharedMedia-3.0: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
    libs/LibResInfo-1.0: git://github.com/phanx-wow/LibResInfo.git
+   libs/LibClassicHealComm-1.0: https://github.com/Aviana/LibClassicHealComm-1.0.git
