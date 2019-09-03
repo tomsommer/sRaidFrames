@@ -149,7 +149,7 @@ function sRaidFrames:OnInitialize()
 	
 	sRaidFrames.options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	sRaidFrames.options.args.profiles.order = 1000
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("sRaidFrames", sRaidFrames.options)
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("sRaidFrames", sRaidFrames.options, {"/sraidframes", "/srf"})
 	
 	-- Upgrade Config
 	local cv = self.db.profile.configVersion or 0
