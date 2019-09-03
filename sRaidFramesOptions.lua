@@ -3,10 +3,6 @@ local Media = LibStub("LibSharedMedia-3.0")
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
 local sRaidFrames = sRaidFrames
 
-local addonName, NS = ...
-local privateFuncs = NS.funcs
-local IsInCombat = privateFuncs.IsInCombat
-
 BINDING_HEADER_sRaidFrames = "sRaidFrames"
 BINDING_NAME_ShowHideRaidWindows = L["Show/Hide Raid Windows"]
 BINDING_NAME_ToggleBuffDebuffview = L["Toggle Buff/Debuff view"]
@@ -43,7 +39,7 @@ sRaidFrames.options = {
 					end
 				end
 			end,
-			disabled = function() return not sRaidFrames.opt.Show or IsInCombat() end,
+			disabled = function() return not sRaidFrames.opt.Show or InCombatLockdown() end,
 			order = 2,
 			width = "half",
 		},
@@ -59,8 +55,8 @@ sRaidFrames.options = {
 				sRaidFrames.opt.Show = value;
 				sRaidFrames:UpdateRoster();
 			end,
-			-- hidden = function() return not sRaidFrames.enabled end,
-			disabled = IsInCombat,
+			--hidden = function() return not sRaidFrames.enabled end,
+			disabled = InCombatLockdown,
 			order = 3,
 			width = "half",
 		},
@@ -76,7 +72,7 @@ sRaidFrames.options = {
 				sRaidFrames.opt.HideInArena = value
 				sRaidFrames:UpdateRoster()
 			end,
-			disabled = function() return not sRaidFrames.opt.Show or IsInCombat() end,
+			disabled = function() return not sRaidFrames.opt.Show or InCombatLockdown() end,
 			order = 4,
 		},
 		minimapIcon = {
@@ -87,18 +83,6 @@ sRaidFrames.options = {
 			get = function() return not sRaidFrames.db.profile.minimapIcon.hide end,
 			set = function(info, value) sRaidFrames.db.profile.minimapIcon.hide = not value; LDBIcon[value and "Show" or "Hide"](LDBIcon, "sRaidFrames") end,
 			disabled = function() return not LDBIcon end,
-		},
-		hideBlizzard = {
-			type = "toggle",
-			order = 6,
-			name = L["Hide Blizzard Raid Frames"],
-			get = function() return sRaidFrames.opt.HideBlizzard end,
-			set = function(info, value)
-				sRaidFrames.opt.HideBlizzard = value
-				sRaidFrames:HideBlizzard()
-			end,
-			disabled = function() return IsInCombat() end,
-			width = "double",
 		},
 		behaviour = {
 			type = "group",
@@ -142,7 +126,7 @@ sRaidFrames.options = {
 							values = {["ctra"] = L["CT_RaidAssist"], ["horizontal"] = L["Horizontal"], ["vertical"] = L["Vertical"]},
 						},
 					},
-					disabled = IsInCombat,
+					disabled = InCombatLockdown,
 					order = 50,
 				},
 				layout = {
@@ -160,7 +144,7 @@ sRaidFrames.options = {
 					values = {},
 					order = 30,
 					width = "double",
-					disabled = IsInCombat,
+					disabled = InCombatLockdown,
 				},
 
 				growth = {
@@ -175,7 +159,7 @@ sRaidFrames.options = {
 						sRaidFrames:SetGrowth()
 					end,
 					values = {["up"] = L["Up"], ["down"] = L["Down"], ["left"] = L["Left"], ["right"] = L["Right"]},
-					disabled = IsInCombat,
+					disabled = InCombatLockdown,
 					order = 20,
 				},
 
@@ -193,7 +177,7 @@ sRaidFrames.options = {
 						sRaidFrames.opt.Spacing = s
 						sRaidFrames:SetSpacing()
 					end,
-					disabled = IsInCombat,
+					disabled = InCombatLockdown,
 					order = 10,
 				},
 				
@@ -217,7 +201,7 @@ sRaidFrames.options = {
 			type = "group",
 			desc = L["Toggle the display of certain Groups/Classes"],
 			args = {},
-			disabled = IsInCombat,
+			disabled = InCombatLockdown,
 			order = 250,
 		},
 		informational = {
@@ -229,7 +213,6 @@ sRaidFrames.options = {
 				health = {
 					name = L["Health text"],
 					type = "select",
-					width = "double",
 					desc = L["Set health display type"],
 					get = function()
 						return sRaidFrames.opt.HealthFormat
@@ -268,7 +251,6 @@ sRaidFrames.options = {
 					values = {
 						[tostring(SPELL_POWER_MANA)] = L["Mana"],
 						[tostring(SPELL_POWER_RAGE)] = L["Rage"],
-						[tostring(SPELL_POWER_FOCUS)] = "Focus", -- L["Focus"] pending addition from Localization App
 						[tostring(SPELL_POWER_ENERGY)] = L["Energy"],
 						[tostring(SPELL_POWER_RUNIC_POWER)] = L["Runic Power"],
 					},
@@ -324,13 +306,59 @@ sRaidFrames.options = {
 				},
 
 				heals = {
-					name = L["Enable heal tracking"],
-					type = "toggle",
-					desc = L["Turn the border of units getting heals green"],
-					get = GetVar,
-					set = SetVar,
-					arg = "HighlightHeals",
-					width = "double",
+					name = L["Heal tracking"],
+					type = "group",
+					desc = L["Options for heal tracking"],
+					disabled = function() return not LibStub("LibHealComm-4.0", true) end,
+					dialogInline = true,
+					args = {
+						enable = {
+							name = L["Enable heal tracking"],
+							type = "toggle",
+							desc = L["Turn the border of units getting heals green"],
+							get = GetVar,
+							set = SetVar,
+							arg = "HighlightHeals",
+							width = "double",
+							order = 1,
+						},
+						direct = {
+							name = L["Show direct heals"],
+							type = "toggle",
+							desc = L["Toggle whether direct heals are displayed"],
+							get = function() return sRaidFrames.opt.heals.direct end,
+							set = function(info, value) sRaidFrames.opt.heals.direct = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
+							order = 2,
+							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
+						},
+						channel = {
+							name = L["Show channeled heals"],
+							type = "toggle",
+							desc = L["Toggle whether channeled heals are displayed"],
+							get = function() return sRaidFrames.opt.heals.channel end,
+							set = function(info, value) sRaidFrames.opt.heals.channel = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
+							order = 3,
+							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
+						},
+						hot = {
+							name = L["Show HoT heals"],
+							type = "toggle",
+							desc = L["Toggle whether heals over time are displayed"],
+							get = function() return sRaidFrames.opt.heals.hot end,
+							set = function(info, value) sRaidFrames.opt.heals.hot = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
+							order = 4,
+							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
+						},
+						bomb = {
+							name = L["Show bloom heals"],
+							type = "toggle",
+							desc = L["Toggle whether \"blooming\" heals are displayed"],
+							get = function() return sRaidFrames.opt.heals.bomb end,
+							set = function(info, value) sRaidFrames.opt.heals.bomb = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
+							order = 5,
+							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
+						},
+					},
 					order = 350,
 				},
 
@@ -431,7 +459,7 @@ sRaidFrames.options = {
 							sRaidFrames:UpdateTitleVisibility(f.header)
 						end
 					end,
-					disabled = function() return not sRaidFrames.opt.Locked or IsInCombat() end,
+					disabled = function() return not sRaidFrames.opt.Locked or InCombatLockdown() end,
 					order = 1,
 				},
 				texture = {
@@ -492,7 +520,7 @@ sRaidFrames.options = {
 						sRaidFrames.opt.Scale = value
 						sRaidFrames.master:SetScale(value)
 					end,
-					disabled = IsInCombat,
+					disabled = InCombatLockdown,
 					order = 2,
 				},
 				colors = {
@@ -579,7 +607,6 @@ sRaidFrames.options = {
 						units = {
 							name = L["Unit tooltips"],
 							type = "select",
-							width = "double",
 							desc = L["Determine when a tooltip is displayed"],
 							get = GetVar,
 							set = SetVar,
@@ -768,7 +795,6 @@ sRaidFrames.options = {
 
 						highlight = {
 							order = 2,
-							width = "double",
 							name = L["Highlight debuffed units"],
 							type = "select",
 							desc = L["Highlight units afflicted by a certain debuff type"],
@@ -1093,9 +1119,7 @@ function sRaidFrames:chatUpdateStatusElements()
 			local id = key:match("^Buff_(%d+)")
 			name = GetSpellInfo(id)
 		end
-		if not name then
-			self.opt.StatusMaps[key] = nil
-		elseif not self.options.args.advanced.args[key] then
+		if not self.options.args.advanced.args[key] then
 			self.options.args.advanced.args[key] = {
 				type = 'group',
 				name = name,
@@ -1146,25 +1170,6 @@ function sRaidFrames:chatUpdateStatusElements()
 						usage = "<name>",
 						set = function(info, value) self.opt.StatusMaps[key].text = value end,
 						get = function() return self.opt.StatusMaps[key].text end,
-					},
-					options = {
-						name = L["Options"],
-						type = "group",
-						order = 200,
-						dialogInline = true,
-						args = {
-							playerOnly = {
-								name = L["Player only"],
-								desc = L["Only show this status if it was cast by yourself.\nOnly valid for buff statuses."],
-								type = "toggle",
-								get = function()
-									return self.opt.StatusMaps[key].options.playerOnly
-								end,
-								set = function(info, value)
-									self.opt.StatusMaps[key].options.playerOnly = value
-								end,
-							}
-						},
 					},
 				},
 				order = 200-self.opt.StatusMaps[key].priority,

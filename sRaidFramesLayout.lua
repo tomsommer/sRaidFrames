@@ -22,13 +22,8 @@ function sRaidFrames:SetLayout(name)
 end
 
 function sRaidFrames:ApplyLayout()
-	local layout = self:GetLayout()
-	for _, f in pairs(self.groupframes) do
-		f.header:SetAttribute("style-width", layout.unitframeWidth)
-		f.header:SetAttribute("style-height", layout.unitframeHeight)
-	end
-	for _, f in pairs(self.frames) do
-		layout.StyleUnitFrame(f)
+	for _, f in ipairs(self.frames) do
+		self:GetLayout().StyleUnitFrame(f)
 	end
 	for unit in pairs(self:GetAllUnits()) do
 		self:UpdateStatuses(unit)

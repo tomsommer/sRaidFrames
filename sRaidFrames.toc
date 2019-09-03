@@ -1,20 +1,13 @@
-## Interface: 60000
-## Title: sRaidFrames
+﻿## Title: sRaidFrames
 ## Notes: CT_RaidAssist style raid frames
 ## Notes-koKR: 공격대 도우미 스타일의 공격대 프레임
 ## Notes-zhCN: CT_RaidAssist 风格的团队框体
 ## Notes-zhTW: CT_RaidAssist 風格的團隊框架
 ## Notes-deDE: Schlachtzugframes im Stil von CT_RaidAssist
-## Version: r765
 ## Author: Saroz, Nevcairiel, Stolenlegacy
-## X-Email: saroz@random-guild.com
 ## X-Category: Raid
-## OptionalDeps: Ace3, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, AceGUI-3.0-Spell-EditBox, LibResInfo-1.0, LibGroupInSpecT-1.0, LibBanzai-2.0, LibDBIcon-1.0, SharedMedia, Clique
+## OptionalDeps: Ace3, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, AceGUI-3.0-Spell-EditBox, LibHealComm-4.0, LibResComm-1.0, LibBanzai-2.0, LibDBIcon-1.0, LibTalentQuery-1.0, LibGroupTalents-1.0, SharedMedia, Clique
 ## SavedVariables: sRaidFramesDB
-## X-Curse-Packaged-Version: r765
-## X-Curse-Project-Name: sRaidFrames
-## X-Curse-Project-ID: sraidframes
-## X-Curse-Repository-ID: wow/sraidframes/mainline
 
 #@no-lib-strip@
 libs\LibStub\LibStub.lua
@@ -42,8 +35,10 @@ libs\AceGUI-3.0-SpellEditBox\AceGUI-3.0-Spell-EditBox.xml
 
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 libs\LibBanzai-2.0\lib.xml
-libs\LibResInfo-1.0\LibResInfo-1.0.lua
-libs\LibGroupInSpecT-1.0\lib.xml
+libs\LibHealComm-4.0\LibHealComm-4.0.xml
+libs\LibResComm-1.0\lib.xml
+libs\LibTalentQuery-1.0\lib.xml
+libs\LibGroupTalents-1.0\lib.xml
 #@end-no-lib-strip@
 
 locales\locale.xml
@@ -51,4 +46,5 @@ locales\locale.xml
 sRaidFrames.lua
 sRaidFramesOptions.lua
 sRaidFramesLayout.lua
+sRaidFramesHealing.lua
 sRaidFramesGroupFilter.lua

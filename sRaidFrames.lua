@@ -1,25 +1,28 @@
 ﻿local select, next, pairs, tinsert, tconcat, tonumber, ceil, fmod = select, next, pairs, tinsert, table.concat, tonumber, ceil, math.fmod
-local InCombatLockdown, IsInInstance, CheckInteractDistance, IsSpellInRange, UnitIsGroupLeader, UnitIsGroupAssistant, UnitIsRaidOfficer, IsEveryoneAssistant =
-      InCombatLockdown, IsInInstance, CheckInteractDistance, IsSpellInRange, UnitIsGroupLeader, UnitIsGroupAssistant, UnitIsRaidOfficer, IsEveryoneAssistant
-local GetSpecialization, GetSpellInfo, GetNumGroupMembers, GetRaidRosterInfo, IsInRaid =
-      GetSpecialization, GetSpellInfo, GetNumGroupMembers, GetRaidRosterInfo, IsInRaid
+local InCombatLockdown, IsInInstance, CheckInteractDistance, IsSpellInRange, IsRaidLeader, IsRaidOfficer =
+      InCombatLockdown, IsInInstance, CheckInteractDistance, IsSpellInRange, IsRaidLeader, IsRaidOfficer
+local GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumRaidMembers, GetRaidRosterInfo =
+      GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumRaidMembers, GetRaidRosterInfo
 local UnitClass, UnitInRange, UnitIsVisible, UnitIsUnit, UnitName, UnitIsDead, UnitIsGhost, UnitIsConnected, UnitIsAFK =
       UnitClass, UnitInRange, UnitIsVisible, UnitIsUnit, UnitName, UnitIsDead, UnitIsGhost, UnitIsConnected, UnitIsAFK
-local UnitHealth, UnitHealthMax, UnitPowerType, UnitPower, UnitPowerMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace =
-      UnitHealth, UnitHealthMax, UnitPowerType, UnitPower, UnitPowerMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace
-local UnitExists, UnitInRaid, UnitGUID, UnitLevel, IsAltKeyDown = UnitExists, UnitInRaid, UnitGUID, UnitLevel, IsAltKeyDown
+local UnitHealth, UnitHealthMax, UnitPowerType, UnitMana, UnitManaMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace =
+      UnitHealth, UnitHealthMax, UnitPowerType, UnitMana, UnitManaMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace
+local UnitExists, IsAltKeyDown = UnitExists, IsAltKeyDown
 local GetRaidTargetIndex = GetRaidTargetIndex
 
 local PowerBarColor, RAID_CLASS_COLORS = PowerBarColor, RAID_CLASS_COLORS
 
 local L = LibStub("AceLocale-3.0"):GetLocale("sRaidFrames")
-local LGIST = LibStub:GetLibrary("LibGroupInSpecT-1.0", true)
-local ResInfo = LibStub("LibResInfo-1.0", true)
+local LibGroupTalents = LibStub:GetLibrary("LibGroupTalents-1.0", true)
+local HealComm = LibStub("LibHealComm-4.0", true)
+local ResComm = LibStub("LibResComm-1.0", true)
 local Media = LibStub("LibSharedMedia-3.0")
 local Banzai = LibStub("LibBanzai-2.0", true)
 local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
 local createLDBLauncher
+
+local AE2 = AceLibrary and AceLibrary:HasInstance("AceEvent-2.0") and AceLibrary("AceEvent-2.0")
 
 Media:Register("statusbar", "Otravi", "Interface\\AddOns\\sRaidFrames\\textures\\otravi")
 Media:Register("statusbar", "Smooth", "Interface\\AddOns\\sRaidFrames\\textures\\smooth")
@@ -33,26 +36,17 @@ sRaidFrames = LibStub("AceAddon-3.0"):NewAddon("sRaidFrames",
 	"AceConsole-3.0"
 )
 
-local addonName, NS = ...
-NS.funcs = {}
-local privateFuncs = NS.funcs
-
 local sRaidFrames = sRaidFrames
 
 local SpellCache = setmetatable({}, {
 	__index = function(table, id)
-		local name = GetSpellInfo(id)
-		if not name then
-			print("sRaidFrames: spell was removed", id)
-		end
-		table[id] = name
-		return name
+		table[id] = GetSpellInfo(id)
+		return table[id]
 	end
 })
 
 local defaults = { profile = {
 	Locked				= false,
-	HideBlizzard	= true,
 	HealthFormat		= 'percent',
 	HideMaxHealth		= false,
 	Invert 				= false,
@@ -79,7 +73,7 @@ local defaults = { profile = {
 	BuffDisplayOptions	= {},
 	DebuffFilter		= {},
 	DebuffWhitelist		= {},
-	PowerFilter			= {[SPELL_POWER_MANA] = true,[SPELL_POWER_RAGE] = false, [SPELL_POWER_FOCUS] = false, [SPELL_POWER_ENERGY] = false, [SPELL_POWER_RUNIC_POWER] = false},
+	PowerFilter			= {[SPELL_POWER_MANA] = true,[SPELL_POWER_RAGE] = false, [SPELL_POWER_ENERGY] = false, [SPELL_POWER_RUNIC_POWER] = false},
 	RangeCheck 			= true,
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
@@ -88,6 +82,7 @@ local defaults = { profile = {
 	AggroCheck			= false,
 	HighlightTarget		= false,
 	HighlightHeals		= true,
+	heals =				{channel=true, direct=true, hot=false, bomb=true},
 	HighlightDebuffs 	= "onlyself",
 	Layout				= "CTRA_WithBorders",
 	GroupSetup			= L["By class"],
@@ -105,7 +100,7 @@ local defaults = { profile = {
 	bufftimer			= {max=30, show=true},
 }}
 
-sRaidFrames.CONFIG_VERSION = 2
+sRaidFrames.CONFIG_VERSION = 1
 
 function sRaidFrames:OnInitialize()
 	-- convert Ace2 -> Ace3 config
@@ -114,8 +109,8 @@ function sRaidFrames:OnInitialize()
 			sRaidFramesDB.profileKeys = {}
 		end
 		-- copy stored/configured profiles
-		-- Note: class/* and realm/* values are not changed,
-		-- since there is no way to determine what they should
+		-- Note: class/* and realm/* values are not changed, 
+		-- since there is no way to determine what they should 
 		-- be for the individual chars.
 		for k, v in pairs(sRaidFramesDB.currentProfile) do
 			local new_value = v
@@ -125,7 +120,7 @@ function sRaidFrames:OnInitialize()
 			sRaidFramesDB.profileKeys[k] = new_value
 		end
 		sRaidFramesDB.currentProfile = nil
-
+		
 		-- move actual data
 		-- Only char/ is moved due to the same restrictions as above.
 		for key, data in pairs(sRaidFramesDB.profiles) do
@@ -136,24 +131,24 @@ function sRaidFrames:OnInitialize()
 			end
 		end
 	end
-
+	
 	local optFunc = function()
 		LibStub("AceConfigDialog-3.0"):Open("sRaidFrames")
 	end
 	self:RegisterChatCommand("srf", optFunc)
-
+	
 	self.db = LibStub("AceDB-3.0"):New("sRaidFramesDB", defaults)
 	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileEnable")
 	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileEnable")
 	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileEnable")
-
+	
 	sRaidFrames.options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	sRaidFrames.options.args.profiles.order = 1000
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("sRaidFrames", sRaidFrames.options)
-
+	
 	-- Upgrade Config
 	local cv = self.db.profile.configVersion or 0
-
+	
 	-- Version 1: Numeric Buff Status Maps, remove the old ones.
 	if cv < 1 then
 		for k,v in pairs(self.db.profile.StatusMaps) do
@@ -162,18 +157,9 @@ function sRaidFrames:OnInitialize()
 			end
 		end
 	end
-
-	-- Version 2: Options for StatusMaps
-	if cv < 2 then
-		for k,v in pairs(self.db.profile.StatusMaps) do
-			if not v.options then
-				v.options = {}
-			end
-		end
-	end
-
+	
 	self.db.profile.configVersion = sRaidFrames.CONFIG_VERSION
-
+	
 	self.opt = self.db.profile
 
 	-- Init variables
@@ -185,7 +171,7 @@ function sRaidFrames:OnInitialize()
 	self.statusElements = {}
 	self.validateStatusElements = {}
 	self.vehicleUpdate = {}
-	-- Conversion to new checkbox buff filtering
+	--Conversion to new checkbox buff filtering
 	if self.opt.BuffBlacklist then
 		for i, k in pairs(self.opt.BuffBlacklist) do
 			if k then
@@ -220,30 +206,52 @@ function sRaidFrames:OnInitialize()
 		self.opt.Growth = {};
 		self.opt.Growth["default"] = growth;
 	end
-	-- MoP updates pending (13-Oct-2012)
+
 	self.cooldownSpells = {}
-	self.cooldownSpells["WARLOCK"] = SpellCache[20707] -- Soulstone Resurrection
-	self.cooldownSpells["DRUID"] = SpellCache[20484] -- Rebirth
+	self.cooldownSpells["WARLOCK"] = SpellCache[27239] -- Soulstone Resurrection
+	self.cooldownSpells["DRUID"] = SpellCache[26994] -- Rebirth
 	self.cooldownSpells["SHAMAN"] = SpellCache[20608] -- Reincarnation
-	-- self.cooldownSpells["PALADIN"] = SpellCache[19753] -- Divine Intervention
+	self.cooldownSpells["PALADIN"] = SpellCache[19753] -- Divine Intervention
 
-	self.dispellers = {["PRIEST"]=true, ["SHAMAN"]=true, ["PALADIN"]=true, ["MONK"]=true, ["DRUID"]=true, ["MAGE"]=true}
-	self.cleanseTypes = {} -- populated in OnEnable
-
-	-- MoP updates pending (13-Oct-2012)
+	self.cleanseTypes= {
+		["PRIEST"] = {
+			["Magic"] = true,
+			["Disease"] = true,
+		},
+		["SHAMAN"] = {
+			["Poison"] = true,
+			["Disease"] = true,
+			["Curse"] = true,
+		},
+		["PALADIN"] = {
+			["Magic"] = true,
+			["Poison"] = true,
+			["Disease"] = true,
+		},
+		["MAGE"] = {
+			["Curse"] = true,
+		},
+		["DRUID"] = {
+			["Curse"] = true,
+			["Poison"] = true,
+		},
+	}
+	
 	local statusSpellTable = {
+		[19753] = true, -- Divine Intervention
 		[35079] = true, -- Misdirection
 		[5384] = true, -- Feign Death
 		[3411] = true, -- Intervene
+		[29166] = true, -- Innervate
 		[20711] = true, -- Spirit of Redemption
 		[871] = true, -- Shield Wall
 		[12975] = true, -- Last Stand
 		[45438] = true, -- Ice Block
 		[40733] = true, -- Divine Shield
-		[1856] = true, -- Vanish
+		[26889] = true, -- Vanish
 		[39666] = true, -- Cloak of Shadows
 		[66] = true, -- Invisibility
-		[1784] = true, -- Stealth
+		[1787] = true, -- Stealth
 		[38541] = true, -- Evasion
 		[10060] = true, -- Power Infusion
 		[32182] = true, -- Heroism
@@ -251,21 +259,19 @@ function sRaidFrames:OnInitialize()
 		[6346] = true, -- Fear Ward
 		[15473] = true, -- Shadowform
 		[498] = true, -- Divine Protection
-		[1022] = true, -- Hand of Protection
+		[10278] = true, -- Hand of Protection
 		[22812] = true, -- Barkskin
 		[33206] = true, -- Pain Suppression
 		[61336] = true, -- Survival Instincts
 		[55233] = true, -- Vampiric Blood
 		[48792] = true, -- Icebound Fortitude
 		[48707] = true, -- Anti-Magic Shell
+		[51271] = true, -- Unbreakable Armor
 		[47788] = true, -- Guardian Spirit
 	}
 	self.statusSpellTable = {}
 	for k in pairs(statusSpellTable) do
-		local spell = SpellCache[k]
-		if spell then
-			self.statusSpellTable[spell] = k
-		end
+		self.statusSpellTable[SpellCache[k]] = k
 	end
 	if sRaidFramesDB.classspelltable then
 		self.opt.classpelltable = sRaidFramesDB.classspelltable
@@ -275,54 +281,17 @@ function sRaidFrames:OnInitialize()
 		sRaidFramesDB.CustomStatuses = {};
 	end
 	for c in pairs(sRaidFramesDB.CustomStatuses) do
-		local spell = SpellCache[c]
-		if spell then
-			self.statusSpellTable[spell] = c
-		else
-			sRaidFramesDB.CustomStatuses[c] = nil
-		end
+		self.statusSpellTable[SpellCache[c]] = c
 	end
-
-	-- MoP Current 5.0.5b 13-Oct-2012
-	self.specMap = {} -- map LGIST .global_spec_id to "tank", "healer", "melee", "caster", "unknown" to avoid extensive rewrites. Only need hybrids
-	self.specMap[0] = "unknown"
-	-- Death Knight
-	self.specMap[250] = "tank"
-	self.specMap[251] = "melee"
-	self.specMap[252] = "melee"
-	-- Druid
-	self.specMap[102] = "caster"
-	self.specMap[103] = "melee"
-	self.specMap[104] = "tank"
-	self.specMap[105] = "healer"
-	-- Monk
-	self.specMap[268] = "tank"
-	self.specMap[269] = "melee"
-	self.specMap[270] = "healer"
-	-- Paladin
-	self.specMap[65] = "healer"
-	self.specMap[66] = "tank"
-	self.specMap[70] = "melee"
-	-- Priest
-	self.specMap[256] = "healer"
-	self.specMap[257] = "healer"
-	self.specMap[258] = "caster"
-	-- Shaman
-	self.specMap[262] = "caster"
-	self.specMap[263] = "melee"
-	self.specMap[264] = "healer"
-	-- Warrior
-	self.specMap[71] = "melee"
-	self.specMap[72] = "melee"
-	self.specMap[73] = "tank"
 
 	self:AddStatusMap("ReadyCheck_Pending", 80, {"background"}, L["Ready?"], {r = 0.1, g = 0.1, b = 0.1})
 
 	self:AddStatusMap("Death", 70, {"background"}, L["Dead"], {r = 0.1, g = 0.1, b = 0.1, a = 1})
 
-	-- MoP updates pending (13-Oct-2012)
 	-- Spirit of Redemption
 	self:AddStatusMap("Buff_20711", 65, {"statusbar"}, L["Dead"], {r=1,g=0,b=0,a=1})
+	-- Divine Intervention
+	self:AddStatusMap("Buff_19753", 65, {"statusbar"}, L["Intervened"], {r=1,g=0,b=0,a=1})
 
 	self:AddStatusMap("Aggro", 50, {"border"}, "Aggro", {r = 1, g = 0, b = 0})
 	self:AddStatusMap("Target", 55, {"border"}, "Target", {r = 1, g = 0.75, b = 0})
@@ -331,9 +300,9 @@ function sRaidFrames:OnInitialize()
 	self:AddStatusMap("Raid Icon: Diamond", 60, {"statusbar"}, "Diamond", {r = 1, g=0, b=1,a=1}, true)
 	self:AddStatusMap("Raid Icon: Triangle", 60, {"statusbar"}, "Triangle", {r=0, g=1, b=0,a=1}, true)
 	self:AddStatusMap("Raid Icon: Moon", 60, {"statusbar"}, "Moon", {r=1, g=1, b=1,a =1}, true)
-	self:AddStatusMap("Raid Icon: Square", 60, {"statusbar"}, "Square", {r=0.4156862745098, g=0.8078431372549, b=0.96470588235294, a=1}, true)
-	self:AddStatusMap("Raid Icon: Cross", 60, {"statusbar"}, "Cross", {r=1, g=0, b=0, a=1}, true)
-	self:AddStatusMap("Raid Icon: Skull", 60, {"statusbar"}, "Skull", {r=1, g=1, b=1, a=1}, true)
+	self:AddStatusMap("Raid Icon: Square", 60, {"statusbar"}, "Square", {r=0.4156862745098, g=0.8078431372549, b=0.96470588235294, a=1}, true);
+	self:AddStatusMap("Raid Icon: Cross", 60, {"statusbar"}, "Cross", {r=1, g=0, b=0, a=1}, true);
+	self:AddStatusMap("Raid Icon: Skull", 60, {"statusbar"}, "Skull", {r=1, g=1, b=1, a=1}, true);
 
 	self:AddStatusMap("Debuff_Curse", 55, {"background"}, "Cursed", {r=1, g=0, b=0.75, a=0.5})
 	self:AddStatusMap("Debuff_Magic", 54, {"background"}, "Magic", {r=1, g=0, b=0, a=0.5})
@@ -345,19 +314,21 @@ function sRaidFrames:OnInitialize()
 	-- Last Stand
 	self:AddStatusMap("Buff_12975", 52, {"statusbar"}, SpellCache[12975], {r=1,g=1,b=1,a=1})
 	-- Vanish
-	self:AddStatusMap("Buff_1856", 51, {"statusbar"}, L["Vanished"], {r=0,g=1,b=0,a=1})
+	self:AddStatusMap("Buff_26889", 51, {"statusbar"}, L["Vanished"], {r=0,g=1,b=0,a=1})
 	-- Invisibility
 	self:AddStatusMap("Buff_66", 51, {"statusbar"}, SpellCache[66], {r=0,g=1,b=0,a=1})
 	-- Evasion
 	self:AddStatusMap("Buff_38541", 50, {"statusbar"}, SpellCache[38541], {r=1,g=1,b=0,a=1})
 	-- Stealth
-	self:AddStatusMap("Buff_1784", 50, {"statusbar"}, L["Stealthed"], {r=1,g=1,b=1,a=1})
+	self:AddStatusMap("Buff_1787", 50, {"statusbar"}, L["Stealthed"], {r=1,g=1,b=1,a=1})
+	-- Innervate
+	self:AddStatusMap("Buff_29166", 51, {"statusbar"}, L["Innervating"], {r=0,g=1,b=0,a=1})
 	-- Ice Block
 	self:AddStatusMap("Buff_45438", 50, {"statusbar"}, SpellCache[45438], {r=1,g=1,b=1,a=1})
 	-- Divine Protection
 	self:AddStatusMap("Buff_498", 53, {"statusbar"}, SpellCache[498], {r=1,g=1,b=1,a=1})
 	-- Hand of Protection
-	self:AddStatusMap("Buff_1022", 53, {"statusbar"}, L["Protection"], {r=1,g=1,b=1,a=1})
+	self:AddStatusMap("Buff_10278", 53, {"statusbar"}, L["Protection"], {r=1,g=1,b=1,a=1})
 	-- Barkskin
 	self:AddStatusMap("Buff_22812", 52, {"statusbar"}, SpellCache[22812], {r=1,g=1,b=1,a=1})
 	-- Pain Suppression
@@ -370,9 +341,11 @@ function sRaidFrames:OnInitialize()
 	self:AddStatusMap("Buff_55233", 52, {"statusbar"}, SpellCache[55233], {r=1,g=1,b=1,a=1})
 	-- Survival Instincts
 	self:AddStatusMap("Buff_61336", 52, {"statusbar"}, SpellCache[61336], {r=1,g=1,b=1,a=1})
+	-- Unbreakable Armor
+	self:AddStatusMap("Buff_51271", 53, {"statusbar"}, L["Unbreakable"], {r=1,g=1,b=1,a=1})
 	-- Guardian Spirit
 	self:AddStatusMap("Buff_47788", 53, {"statusbar"}, L["Guardian"], {r=1,g=1,b=1,a=1})
-
+	
 	-- Feign Death
 	self:AddStatusMap("Buff_5384", 50, {"statusbar"}, SpellCache[5384], {r=0,g=1,b=0,a=1})
 	-- Cloak of Shadows
@@ -396,10 +369,10 @@ function sRaidFrames:OnInitialize()
 	self:AddStatusMap("Heal", 36, {"statusbar"}, "Inc. heal", {r = 0, g = 1, b = 0})
 	-- Shadowform
 	self:AddStatusMap("Buff_15473", 35, {"statusbar"}, SpellCache[15473], {r=1,g=0,b=0.75,a=1})
-
+	
 	self:AddStatusMap("Vehicle", 56, {"statusbar"}, "On Vehicle", {r=1,g=1,b=1,a=1})
 
-	self:RegisterStatusElement("border", "Border",
+	self:RegisterStatusElement("border", "Border", 
 		function(self, frame, status)
 			if status == nil then
 				frame:SetBackdropBorderColor(self.opt.BorderColor.r, self.opt.BorderColor.g, self.opt.BorderColor.b, self.opt.BorderColor.a or 1)
@@ -408,7 +381,7 @@ function sRaidFrames:OnInitialize()
 			end
 		end
 	)
-
+	
 	self:RegisterStatusElement("background", "Background",
 		function(self, frame, status)
 			if status == nil then
@@ -418,7 +391,7 @@ function sRaidFrames:OnInitialize()
 			end
 		end
 	)
-
+	
 	self:RegisterStatusElement("statusbar", "StatusBar",
 		function(self, frame, status)
 			if status == nil then
@@ -430,14 +403,6 @@ function sRaidFrames:OnInitialize()
 		end
 	)
 
-	self.master = CreateFrame("Frame", "sRaidFrame", UIParent)
-	self.master:SetMovable(true)
-	self.master:SetScale(self.opt.Scale)
-
-	self.master:SetHeight(200)
-	self.master:SetWidth(200)
-	RegisterAttributeDriver(self.master, "state-visibility", "[group:raid]show;hide")
-
 	self:DefaultGroupSetups()
 
 	self:chatUpdateFilterMenu()
@@ -445,20 +410,13 @@ function sRaidFrames:OnInitialize()
 	self:chatUpdateDebuffMenu()
 	self:chatUpdateStatusElements()
 
+	self.master = CreateFrame("Frame", "sRaidFrame", UIParent)
+	self.master:SetMovable(true)
+	self.master:SetScale(self.opt.Scale)
+
+	self.master:SetHeight(200);
+	self.master:SetWidth(200);
 	createLDBLauncher()
-
-end
-
-function sRaidFrames:HideBlizzard()
-	if self.opt.HideBlizzard and CompactRaidFrameContainer then
-		CompactRaidFrameContainer:Hide()
-		CompactRaidFrameContainer.Show = self.noop
-		CompactRaidFrameContainer:UnregisterAllEvents()
-
-		CompactRaidFrameManager:Hide()
-		CompactRaidFrameManager.Show = self.noop
-		CompactRaidFrameManager:UnregisterAllEvents()
-	end
 end
 
 function sRaidFrames:AddExternalStatusMap(name)
@@ -483,11 +441,11 @@ function sRaidFrames:AddExternalStatusMap(name)
 end
 
 function sRaidFrames:RemoveExternalStatusMap(id)
-	local name = "Buff_"..tonumber(id);
+	name = "Buff_"..tonumber(id);
 	for unit in pairs(self:GetAllUnits()) do
 		self:UnsetStatus(unit, name);
 	end
-
+	
 	self.options.args.advanced.args[name] = nil
 	self.opt.StatusMaps[name] = nil
 	if not sRaidFramesDB.CustomStatuses then
@@ -497,7 +455,7 @@ function sRaidFrames:RemoveExternalStatusMap(id)
 end
 
 function sRaidFrames:ScheduleLeaveCombatAction(callback, arg1)
-	if not privateFuncs.IsInCombat() then
+	if not InCombatLockdown() then
 		self[callback](self, arg1)
 		return
 	else
@@ -507,19 +465,19 @@ function sRaidFrames:ScheduleLeaveCombatAction(callback, arg1)
 end
 
 function sRaidFrames:PLAYER_REGEN_ENABLED()
-	self.InCombat = false; -- since InCombatLockdown doesn't immediately return correct values, we're setting this variable.
+	self.InCombat = false;					--since InCombatLockdown doesn't immedeately return correct values, we're setting this variable.
 	for unit in pairs(self:GetAllUnits()) do
 		self:UpdateAuras(unit)
 	end
 	if not self.leaveCombatActions then return end
-	for key,info in pairs(self.leaveCombatActions) do
+	for key,info in pairs(self.leaveCombatActions) do 
 		self[info.callback](self, info.arg)
 		self.leaveCombatActions[key] = nil
 	end
 end
 
 function sRaidFrames:PLAYER_REGEN_DISABLED()
-	self.InCombat = true; -- since InCombatLockdown doesn't immediately return correct values, we're setting this variable.
+	self.InCombat = true;					--since InCombatLockdown doesn't immedeately return correct values, we're setting this variable.
 	for unit in pairs(self:GetAllUnits()) do
 		self:UpdateAuras(unit)
 	end
@@ -546,100 +504,33 @@ function sRaidFrames:OnEnable()
 	if CUSTOM_CLASS_COLORS then
 		RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS
 	end
-
+	
 	self.PlayerClass = select(2, UnitClass("player"))
-	self.Dispeller = self.dispellers[self.PlayerClass]
-
-	if (self.Dispeller) then
-		self:UpdateCleanseTypes()
-		self:RegisterEvent("PLAYER_LEVEL_UP", "UpdateCleanseTypes")
-		self:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", "UpdateCleanseTypes")
-		self:RegisterEvent("LEARNED_SPELL_IN_TAB", "UpdateCleanseTypes")
-	end
-
+	
 	self:InitRangeChecks()
 	self:RegisterEvent("PLAYER_TALENT_UPDATE", "InitRangeChecks")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "InitRangeChecks")
 
-	self:RegisterBucketEvent("SPELLS_CHANGED", 0.2)
-	self:RegisterBucketEvent("GROUP_ROSTER_UPDATE", 0.2, "UpdateRoster")
-	self:RegisterEvent("GROUP_JOINED","UpdateRoster")
+	self:RegisterBucketEvent("RAID_ROSTER_UPDATE", 0.2, "UpdateRoster")
 	Media.RegisterCallback(self, "LibSharedMedia_SetGlobal")
 
-	self:CreateFrames()
 	self:UpdateRoster()
 	self:ToggleFrequentUpdates()
-
-	self:HideBlizzard()
-end
-
-function sRaidFrames:SPELLS_CHANGED()
-	if (self.Dispeller) then
-		self:UpdateCleanseTypes()
-	end
-	self:InitRangeChecks()
-end
-
-function sRaidFrames:UpdateCleanseTypes()
-	local pClass = self.PlayerClass
-	local pLevel = UnitLevel("player")
-	local pSpec = GetSpecialization() or 0 -- saves us doing nil checks for player without spec
-	-- MoP current (15-Oct-2012) 5.0.5b
-	-- self.dispellers = {["PRIEST"]=true, ["SHAMAN"]=true, ["PALADIN"]=true, ["MONK"]=true, ["DRUID"]=true, ["MAGE"]=true}
-	if pClass == "PRIEST" then
-		self.cleanseTypes["Magic"] = pLevel >= 72 or (pLevel >= 22 and (pSpec == 1 or pSpec == 2)) -- base at 72 through mass dispel, holy/disc at 22
-		self.cleanseTypes["Disease"] = self.cleanseTypes["Magic"] -- base at 72 through mass dispel, holy/disc at 22
-		self.cleanseTypes["Poison"] = pLevel >= 72 -- base at 72 through mass dispel
-		self.cleanseTypes["Curse"] = self.cleanseTypes["Poison"] -- base at 72 through mass dispel
-	elseif pClass == "SHAMAN" then
-		self.cleanseTypes["Magic"] = pLevel >= 18 and pSpec == 3 -- resto at 18
-		self.cleanseTypes["Curse"] = pLevel >= 18 -- base at 18
-	elseif pClass == "PALADIN" then
-		self.cleanseTypes["Magic"] = pLevel >= 20 and pSpec == 1 -- holy at 20
-		self.cleanseTypes["Disease"] = pLevel >= 20 -- base at 20
-		self.cleanseTypes["Poison"] = self.cleanseTypes["Disease"] -- base at 20
-	elseif pClass == "MONK" then
-		self.cleanseTypes["Magic"] = pLevel >= 20 and pSpec == 2 -- mistweaver at 20
-		self.cleanseTypes["Disease"] = pLevel >= 20 -- base at 20
-		self.cleanseTypes["Poison"] = pLevel >= 20 -- base at 20
-	elseif pClass == "DRUID" then
-		self.cleanseTypes["Magic"] = pLevel >= 22 and pSpec == 4 -- resto at 22
-		self.cleanseTypes["Poison"] = pLevel >= 22 and (pSpec > 0) -- all specs at 22
-		self.cleanseTypes["Curse"] = self.cleanseTypes["Poison"] -- all specs at 22
-	elseif pClass == "MAGE" then
-		self.cleanseTypes["Curse"] = pLevel >= 29 -- base
-	end
-
-	if (pLevel == MAX_PLAYER_LEVEL)
-	or (pClass == "PRIEST" and pLevel >= 72)
-	or (pClass == "SHAMAN" and pLevel >= 18)
-	or (pClass == "PALADIN" and pLevel >= 20)
-	or (pClass == "MONK" and pLevel >= 20)
-	or (pClass == "DRUID" and pLevel >= 22)
-	or (pClass == "MAGE" and pLevel >= 29) then
-		self:UnregisterEvent("PLAYER_LEVEL_UP")
-	end
-
-	if (pClass == "MAGE") then
-		self:UnregisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
-		self:UnregisterEvent("SPELLS_CHANGED")
-	end
-
 end
 
 function sRaidFrames:InitRangeChecks()
 	self.RangeChecks = {}
-
+	
 	self:AddRangeFunction(10, function (unit) return CheckInteractDistance(unit, 3) == 1 end)
 	self:AddRangeFunction(28, function (unit) return CheckInteractDistance(unit, 4) == 1 end)
 	self:AddRangeFunction(38, function (unit) return UnitInRange(unit) end)
 	self:AddRangeFunction(100, function (unit) return UnitIsVisible(unit) == 1 end)
-
+	
 	self:ScanSpellbookForRange()
 end
 
 local EventsHealth = {"UNIT_HEALTH", "UNIT_MAXHEALTH"}
-local EventsPower = {"UNIT_POWER", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER"}
+local EventsPower = {"UNIT_MANA", "UNIT_RAGE", "UNIT_ENERGY", "UNIT_FOCUS", "UNIT_RUNIC_POWER", "UNIT_MAXMANA", "UNIT_MAXRAGE", "UNIT_MAXFOCUS", "UNIT_MAXENERGY", "UNIT_MAXRUNIC_POWER", "UNIT_DISPLAYPOWER"}
 
 function sRaidFrames:UpdateRaidTargets()
 	for unit in pairs(sRaidFrames:GetAllUnits()) do
@@ -651,36 +542,38 @@ function sRaidFrames:EnableFrames()
 	self.enabled = true
 	self.statusstate = {}
 
+	self:CreateFrames()
+
 	self.healthBucket = self:RegisterBucketEvent(EventsHealth, 0.05, "UNIT_HEALTH")
-	self.powerBucket = self:RegisterBucketEvent(EventsPower, 0.5, "UNIT_POWER")
+	self.powerBucket = self:RegisterBucketEvent(EventsPower, 1, "UNIT_POWER")
 	self.auraBucket = self:RegisterBucketEvent("UNIT_AURA", 0.2)
 
 	self:RegisterEvent("PLAYER_TARGET_CHANGED", "UpdateTarget")
-
+	
 	self:RegisterEvent("UNIT_ENTERED_VEHICLE", "UpdateVehicle")
 	self:RegisterEvent("UNIT_EXITED_VEHICLE", "UpdateVehicle")
 	self:RegisterEvent("RAID_TARGET_UPDATE", "UpdateRaidTargets")
 
-	self:RegisterEvent("UNIT_HEAL_PREDICTION", "UpdateHealsOnUnit")
-
-	if ResInfo then
-		ResInfo.RegisterCallback(self, "LibResInfo_ResPending", "ResInfo_CanRes") -- can recover
-		ResInfo.RegisterCallback(self, "LibResInfo_ResCastStarted", "ResInfo_ResStart") -- res is being cast
-		ResInfo.RegisterCallback(self, "LibResInfo_ResCastFinished", "ResInfo_ResEnd") -- res cast ended
-		ResInfo.RegisterCallback(self, "LibResInfo_ResExpired", "ResInfo_ResEnd") -- res timer expired
-		ResInfo.RegisterCallback(self, "LibResInfo_ResCastCancelled", "ResInfo_ResEnd") -- res cancelled
-		ResInfo.RegisterCallback(self, "LibResInfo_ResUsed", "ResInfo_Ressed") -- res accepted
+	if HealComm then
+		HealComm.RegisterCallback(self, "HealComm_HealUpdated")
+		HealComm.RegisterCallback(self, "HealComm_HealStarted", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(self, "HealComm_HealStopped", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(self, "HealComm_HealDelayed", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(self, "HealComm_ModifierChanged")
+	end
+	
+	if ResComm then
+		ResComm.RegisterCallback(self, "ResComm_ResStart")
+		ResComm.RegisterCallback(self, "ResComm_ResEnd")
+		ResComm.RegisterCallback(self, "ResComm_Ressed")
+		ResComm.RegisterCallback(self, "ResComm_CanRes")
+		ResComm.RegisterCallback(self, "ResComm_ResExpired")
 	end
 
 	if Banzai then
 		Banzai:RegisterCallback(sRaidFrames.Banzai_Callback)
 	end
-
-	if LGIST then
-		LGIST.RegisterCallback(self, "GroupInSpecT_Update", "LGIST_Update")
-		LGIST.RegisterCallback(self, "GroupInSpecT_Remove", "LGIST_Update")
-	end
-
+	
 	self:RegisterEvent("READY_CHECK")
 	self:RegisterEvent("READY_CHECK_CONFIRM")
 	self:RegisterEvent("READY_CHECK_FINISHED")
@@ -690,6 +583,8 @@ function sRaidFrames:EnableFrames()
 	self.rangeTimer = self:ScheduleRepeatingTimer("RangeCheck", self.opt.RangeFrequency)
 
 	self:UpdateRoster()
+
+	self.master:Show()
 end
 
 function sRaidFrames:DisableFrames()
@@ -703,18 +598,6 @@ function sRaidFrames:DisableFrames()
 
 	self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 
-	self:UnregisterEvent("UNIT_ENTERED_VEHICLE")
-	self:UnregisterEvent("UNIT_EXITED_VEHICLE")
-	self:UnregisterEvent("RAID_TARGET_UPDATE")
-
-	self:UnregisterEvent("UNIT_HEAL_PREDICTION")
-
-	self:UnregisterEvent("READY_CHECK")
-	self:UnregisterEvent("READY_CHECK_CONFIRM")
-	self:UnregisterEvent("READY_CHECK_FINISHED")
-	self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-	self:UnregisterEvent("PLAYER_REGEN_DISABLED")
-
 	if Banzai then
 		Banzai:UnregisterCallback(sRaidFrames.Banzai_Callback)
 	end
@@ -724,21 +607,23 @@ function sRaidFrames:DisableFrames()
 		self.rangeTimer = nil
 	end
 
-	if ResInfo then
-		ResInfo.UnregisterCallback(self, "LibResInfo_ResPending")
-		ResInfo.UnregisterCallback(self, "LibResInfo_ResCastStarted")
-		ResInfo.UnregisterCallback(self, "LibResInfo_ResCastFinished")
-		ResInfo.UnregisterCallback(self, "LibResInfo_ResExpired")
-		ResInfo.UnregisterCallback(self, "LibResInfo_ResCastCancelled")
-		ResInfo.UnregisterCallback(self, "LibResInfo_ResUsed")
+	if HealComm then
+		HealComm.UnregisterCallback(self, "HealComm_DirectHealStart")
+		HealComm.UnregisterCallback(self, "HealComm_DirectHealStop")
+		HealComm.UnregisterCallback(self, "HealComm_DirectHealDelayed")
+		HealComm.UnregisterCallback(self, "HealComm_HealModifierUpdate")
 	end
-
-	if LGIST then
-		LGIST.UnregisterCallback(self, "GroupInSpecT_Update")
-		LGIST.UnregisterCallback(self, "GroupInSpecT_Remove")
+	
+	if ResComm then
+		ResComm.UnregisterCallback(self, "ResComm_ResStart")
+		ResComm.UnregisterCallback(self, "ResComm_ResEnd")
+		ResComm.UnregisterCallback(self, "ResComm_Ressed")
+		ResComm.UnregisterCallback(self, "ResComm_CanRes")
+		ResComm.UnregisterCallback(self, "ResComm_ResExpired")
 	end
-
+	
 	self.enabled = false
+	self.master:Hide()
 end
 
 function sRaidFrames:ToggleFrequentUpdates()
@@ -760,15 +645,16 @@ function sRaidFrames:LibSharedMedia_SetGlobal(type, handle)
 end
 
 function sRaidFrames:ScanSpellbookForRange()
-	local _, _, tabOffset, tabSlots = GetSpellTabInfo(2);
-
-	for SpellId = tabOffset+1, tabSlots+tabOffset do
+	local i = 1
+	while true do
+		local SpellId = i
 		local name, _, _, _, _, _, _, _, maxRange = GetSpellInfo(SpellId, BOOKTYPE_SPELL)
 		if not name then break end
-
+		
 		if maxRange and IsSpellInRange(SpellId, "spell", "player") ~= nil then
 			self:AddRangeFunction(tonumber(maxRange), function (unit) return IsSpellInRange(SpellId, "spell", unit) == 1 end)
 		end
+		i = i + 1
 	end
 end
 
@@ -776,32 +662,30 @@ end
 do
 	local roster, oldroster = { n = 0 }, {}
 	function sRaidFrames:ScanRoster()
-		if IsInRaid() then
-			local numRaid = GetNumGroupMembers()
-			for id, name in pairs(roster) do
-				oldroster[id] = name
+		local numRaid = GetNumRaidMembers()
+		for id, name in pairs(roster) do
+			oldroster[id] = name
+		end
+		
+		for i = 1, numRaid do
+			local unit = ("raid%d"):format(i)
+			roster[unit] = UnitName(unit)
+			if roster[unit] ~= oldroster[unit] then
+				self:Roster_UnitChanged(unit)
 			end
-
-			for i = 1, numRaid do
-				local unit = ("raid%d"):format(i)
-				roster[unit] = UnitName(unit)
-				if roster[unit] ~= oldroster[unit] then
-					self:Roster_UnitChanged(unit)
-				end
-				oldroster[unit] = nil
-			end
-			roster.n = numRaid
-
-			oldroster.n = nil
-			-- anything thats left in the oldroster now can go
-			for id, name in pairs(oldroster) do
-				oldroster[id] = nil
-				roster[id] = nil
-				self:Roster_UnitLeft(id)
-			end
+			oldroster[unit] = nil
+		end
+		roster.n = numRaid
+		
+		oldroster.n = nil
+		-- anything thats left in the oldroster now can go
+		for id, name in pairs(oldroster) do
+			oldroster[id] = nil
+			roster[id] = nil
+			self:Roster_UnitLeft(id)
 		end
 	end
-
+	
 	function sRaidFrames:GetUnitByName(unitname)
 		for id, name in pairs(roster) do
 			if name == unitname then
@@ -811,22 +695,21 @@ do
 	end
 end
 
-local ShouldUpdateFrameCache = false
 function sRaidFrames:Roster_UnitChanged(unitid)
 	ShouldUpdateFrameCache = true
-
+	
 	self.statusstate[unitid] = {}
 	self:UpdateAll(unitid)
 end
 
 function sRaidFrames:Roster_UnitLeft(unitid)
 	ShouldUpdateFrameCache = true
-
+	
 	self.statusstate[unitid] = nil
 end
 
 function sRaidFrames:UpdateRoster()
-	local inRaid = IsInRaid()
+	local inRaid = GetNumRaidMembers() > 0
 	local inBG = select(2, IsInInstance()) == "pvp"
 	local inArena = select(2, IsInInstance()) == "arena"
 
@@ -870,17 +753,7 @@ end
 function sRaidFrames:UpdateVehicle(event, unit)
 	if not self:IsTracking(unit) then return end
 	self:UpdateAll(unit)
-	-- self:ScheduleTimer("UpdateAll", 0.5, unit)
-end
-
-function sRaidFrames:UpdateHealsOnUnit(event, unit)
-	local incomingHeals = UnitGetIncomingHeals(unit) or 0
-
-	if self.opt.HighlightHeals and incomingHeals > 0 then
-		self:SetStatus(unit, "Heal", ("+%d"):format(incomingHeals), nil, true)
-	else
-		self:UnsetStatus(unit, "Heal")
-	end
+	--self:ScheduleTimer("UpdateAll", 0.5, unit)
 end
 
 function sRaidFrames:UNIT_POWER(units)
@@ -905,7 +778,7 @@ function sRaidFrames:UNIT_AURA(units)
 end
 
 function sRaidFrames:READY_CHECK(event, author)
-	if not self.opt.ReadyCheck or not (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player") or UnitIsRaidOfficer("player") or IsEveryoneAssistant()) then return end
+	if not self.opt.ReadyCheck or not (IsRaidLeader() or IsRaidOfficer()) then return end
 
 	local authorid = self:GetUnitByName(author)
 
@@ -971,39 +844,46 @@ function sRaidFrames.Banzai_Callback(aggro, name, ...)
 	end
 end
 
-function sRaidFrames:LGIST_Update(event, guid, unit, info) -- LibGroupInSpecT
-	self:ScheduleLeaveCombatAction("SetGroupFilters")
-end
-
-function sRaidFrames:ResInfo_ResStart(event, target) -- LibResInfo_ResCastStarted
-	if not target or not UnitInRaid(target) then return end
-	self.res[target] = 3
-	self:UpdateUnitHealth(target)
-end
-
-function sRaidFrames:ResInfo_ResEnd(event, target) -- LibResInfo_ResCastFinished, LibResInfo_ResExpired, LibResInfo_ResCastCancelled
-	if not target or not UnitInRaid(target) then return end
-	local status = ResInfo:UnitHasIncomingRes(target)
-	if status == "CASTING" then
-		self.res[target] = 3
-	elseif status == "PENDING" then
-		self.res[target] = nil
-	else
-	 return
+function sRaidFrames:ResComm_ResStart(event, _, _, target)
+	local unit = self:GetUnitByName(target)
+	if unit then
+		self.res[unit] = 3
+		self:UpdateUnitHealth(unit)
 	end
-	self:UpdateUnitHealth(target)
 end
 
-function sRaidFrames:ResInfo_CanRes(event, target) -- LibResInfo_ResPending
-	if not target or not UnitInRaid(target) then return end
-	self.res[target] = 1
-	self:UpdateUnitHealth(target)
+function sRaidFrames:ResComm_ResEnd(event, _, target)
+	if ResComm:IsUnitBeingRessed(target) then return end
+	
+	local unit = self:GetUnitByName(target)
+	if unit then
+		self.res[unit] = nil
+		self:UpdateUnitHealth(unit)
+	end
 end
 
-function sRaidFrames:ResInfo_Ressed(event, target) -- LibResInfo_ResUsed
-	if not target or not UnitInRaid(target) then return end
-	self.res[target] = 2
-	self:UpdateUnitHealth(target)
+function sRaidFrames:ResComm_CanRes(event, target)
+	local unit = self:GetUnitByName(target)
+	if unit then
+		self.res[unit] = 1
+		self:UpdateUnitHealth(unit)
+	end
+end
+
+function sRaidFrames:ResComm_Ressed(event, target)
+	local unit = self:GetUnitByName(target)
+	if unit then
+		self.res[unit] = 2
+		self:UpdateUnitHealth(unit)
+	end
+end
+
+function sRaidFrames:ResComm_ResExpired(event, target)
+	local unit = self:GetUnitByName(target)
+	if unit then
+		self.res[unit] = nil
+		self:UpdateUnitHealth(unit)
+	end
 end
 
 function sRaidFrames:IsUnitInRange(unit, range)
@@ -1015,11 +895,7 @@ function sRaidFrames:IsUnitInRange(unit, range)
 end
 
 function sRaidFrames:CanDispell(type)
-	if not self.dispellers[self.PlayerClass] then
-		return false
-	else
-		return self.cleanseTypes[type] and true or false
-	end
+	return (self.cleanseTypes[self.PlayerClass] and self.cleanseTypes[self.PlayerClass][type])
 end
 
 function sRaidFrames:RangeCheck()
@@ -1072,7 +948,7 @@ function sRaidFrames:UpdateUnitDetails(unit)
 				f.hpbar:SetStatusBarColor(color.r, color.g, color.b)
 			end
 		end
-
+		
 		if self.opt.VehicleStatus and UnitHasVehicleUI(unit) then
 			self:SetStatus(unit, "Vehicle", UnitName(self:GetVehicleUnit(unit)))
 		else
@@ -1089,7 +965,7 @@ function sRaidFrames:FrequentHealthUpdate()
 			local hp = UnitHealth(unit) or 0
 			local hpmax = UnitHealthMax(unit)
 			local hpp = (hpmax ~= 0) and ceil((hp / hpmax) * 100) or 0
-
+			
 			if hpcache[munit] ~= hp then
 				hpcache[munit] = hp
 				for _, f in pairs(self:FindUnitFrames(munit)) do
@@ -1137,7 +1013,7 @@ function sRaidFrames:UpdateUnitHealth(munit)
 	local unit = self:GetVehicleUnit(munit)
 	for _, f in pairs(self:FindUnitFrames(munit)) do
 		local status, dead, ghost = nil, UnitIsDead(unit), UnitIsGhost(unit)
-
+		
 		if not UnitIsConnected(munit) then status = "|cffff0000"..L["Offline"].."|r"
 		elseif dead and self.res[munit] == 1 then status = "|cff00ff00"..L["Can Recover"].."|r"
 		elseif (dead or ghost) and self.res[munit] == 2 then status = "|cff00ff00"..L["Resurrected"].."|r"
@@ -1180,8 +1056,8 @@ function sRaidFrames:UpdateUnitPower(munit)
 			f.mpbar:SetValue(0)
 		else
 			local color = PowerBarColor[powerType]
-			local mp = UnitPower(unit) or 0
-			local mpmax = UnitPowerMax(unit)
+			local mp = UnitMana(unit) or 0
+			local mpmax = UnitManaMax(unit)
 			local mpp = (mpmax ~= 0) and ceil((mp / mpmax) * 100) or 0
 			f.mpbar:SetStatusBarColor(color.r, color.g, color.b)
 			f.mpbar:SetValue(mpp)
@@ -1215,7 +1091,7 @@ function sRaidFrames:UpdateAuras(munit)
 		self:UnsetStatus(munit, "Debuff_Magic")
 		self:UnsetStatus(munit, "Debuff_Poison")
 		self:UnsetStatus(munit, "Debuff_Disease")
-
+		
 		local i = 1
 		local debuffName, _, debuffTexture, debuffApplications, debuffType, duration, expirationTime = UnitDebuff(unit, i)
 		while debuffName and not (debuffsFull and typeFound) do
@@ -1223,7 +1099,7 @@ function sRaidFrames:UpdateAuras(munit)
 				typeFound = true
 				self:SetStatus(munit, "Debuff_".. debuffType, debuffName)
 			end
-
+			
 			if not debuffsFull and BuffType == "debuffs" or BuffType == "buffsifnotdebuffed" or BuffType == "both" then
 				if not DebuffFilter[debuffName] and ((ShowOnlyDispellable and (self:CanDispell(debuffType) or DebuffWhitelist[debuffName])) or not ShowOnlyDispellable) then
 					DebuffSlots = DebuffSlots + 1
@@ -1258,18 +1134,18 @@ function sRaidFrames:UpdateAuras(munit)
 		local BuffSlots = 0
 		local BuffFilter = self.opt.BuffFilter
 		local HasBuffFilter = next(BuffFilter) and true or false
-		-- local BuffBacklist = self.opt.BuffBlacklist
-		-- local CombatBuffBlacklist = self.opt.CombatBuffBlacklist
+		--local BuffBacklist = self.opt.BuffBlacklist
+		--local CombatBuffBlacklist = self.opt.CombatBuffBlacklist
 		local BuffDisplayOptions = self.opt.BuffDisplayOptions
 		local BuffDisplay = self.opt.BuffDisplay.default
 		local showOnlyCastable = (BuffDisplay == "class") and "RAID" or nil
 		local buffsFull = false
-
+		
 		for name, id in pairs(self.statusSpellTable) do
 			self:UnsetStatus(munit, "Buff_" .. id)
 		end
-
-
+		
+		
 		local i = 1
 		local name, rank, icon, count, debuffType, duration, expirationTime, caster, isStealable = UnitBuff(unit, i, showOnlyCastable)
 		local isMine, buffId
@@ -1326,14 +1202,12 @@ function sRaidFrames:UpdateAuras(munit)
 			if not showOnlyCastable then
 				buffId = self.statusSpellTable[name]
 				if buffId then
-					local status = "Buff_" .. buffId
-					local map = self.opt.StatusMaps[status]
-					if not (map.options.playerOnly and not isMine) and not self.opt.classspelltable[buffId]["IsFiltered"] or self.opt.classspelltable[buffId][self.PlayerClass] then
-						self:SetStatus(munit, status)
+					if not self.opt.classspelltable[buffId]["IsFiltered"] or self.opt.classspelltable[buffId][self.PlayerClass] then
+						self:SetStatus(munit, "Buff_" .. buffId)
 					end
 				end
 			end
-
+			
 			i = i + 1
 			name, rank, icon, count, debuffType, duration, expirationTime, caster, isStealable = UnitBuff(unit, i, showOnlyCastable)
 		end
@@ -1356,13 +1230,11 @@ function sRaidFrames:UpdateAuras(munit)
 			while name do
 				buffId = self.statusSpellTable[name]
 				if buffId then
-					local status = "Buff_" .. buffId
-					local map = self.opt.StatusMaps[status]
-					if not (map.options.playerOnly and not isMine) and not self.opt.classspelltable[buffId]["IsFiltered"] or self.opt.classspelltable[buffId][self.PlayerClass] then
-						self:SetStatus(munit, status)
+					if not self.opt.classspelltable[buffId]["IsFiltered"] or self.opt.classspelltable[buffId][self.PlayerClass] then
+						self:SetStatus(munit, "Buff_" .. buffId)
 					end
 				end
-
+				
 				i = i + 1
 				name = UnitBuff(unit, i)
 			end
@@ -1385,9 +1257,9 @@ function sRaidFrames:UpdateAuras(munit)
 	end
 end
 
-function sRaidFrames:AddStatusMap(statuskey, priority, elements, text, color, disabled, options)
+function sRaidFrames:AddStatusMap(statuskey, priority, elements, text, color, disabled)
 	if self.opt.StatusMaps[statuskey] then return end
-	self.opt.StatusMaps[statuskey] = {["priority"] = priority, ["elements"] = {}, ["text"] = text, ["color"] = color, ["enabled"] = disabled ~= true, ["options"] = options or {}}
+	self.opt.StatusMaps[statuskey] = {["priority"] = priority, ["elements"] = {}, ["text"] = text, ["color"] = color, ["enabled"] = disabled ~= true}
 	for _, element in pairs(elements) do
 		self.opt.StatusMaps[statuskey].elements[element] = true
 	end
@@ -1493,9 +1365,9 @@ function sRaidFrames:UnitTooltip(frame)
 	local name, rank, subgroup, level, class, eclass, zone, _, _, role  = GetRaidRosterInfo(frame.id)
 	local unit = frame:GetAttribute("unit")
 	if not unit or not name then return end
-
+	
 	GameTooltip:SetOwner(frame)
-
+	
 	if self.opt.UnitTooltipType == "blizz" then
 			GameTooltip:SetUnit(unit)
 			GameTooltip:Show()
@@ -1503,18 +1375,19 @@ function sRaidFrames:UnitTooltip(frame)
 	end
 
 	GameTooltip:AddDoubleLine(name, level > 0 and level or nil, RAID_CLASS_COLORS[eclass].r, RAID_CLASS_COLORS[eclass].g, RAID_CLASS_COLORS[eclass].b, 1, 1, 1)
-
+	
 	if UnitHasVehicleUI(unit) then
 		GameTooltip:AddLine(UnitName(self:GetVehicleUnit(unit)))
 	end
-
+	
 	if UnitIsAFK(unit) then
 		GameTooltip:AddLine(L["AFK: Away From Keyboard"], 1, 1, 0)
 	end
 
-	local role, spec
-	if LGIST then
-		role, spec = privateFuncs.LGIST_to_RoleSpec(unit, eclass)
+	local spec, role
+	if LibGroupTalents then
+		spec = LibGroupTalents:GetUnitTalentSpec(unit)
+		role = LibGroupTalents:GetUnitRole(unit)
 	end
 
 	if spec and role then
@@ -1522,7 +1395,7 @@ function sRaidFrames:UnitTooltip(frame)
 	else
 		GameTooltip:AddLine(UnitRace(unit) .. " " .. class, 1, 1, 1);
 	end
-
+	
 	GameTooltip:AddDoubleLine(zone or UNKNOWN, L["Group %d"]:format(subgroup), 1, 1, 1, 1, 1, 1);
 
 	local cooldownSpell = self.cooldownSpells[eclass]
@@ -1542,35 +1415,7 @@ function sRaidFrames:UnitTooltip(frame)
 	GameTooltip:Show()
 end
 
-privateFuncs.IsInCombat = function()
-	return (sRaidFrames.InCombat or InCombatLockdown() or UnitAffectingCombat("player") or UnitAffectingCombat("pet"))
-end
-
-privateFuncs.LGIST_to_RoleSpec = function(unit, eclass)
-	if not (unit) then return nil,nil end
-
-	local info, spec, role
-
-	info = LGIST:GetCachedInfo(UnitGUID(unit))
-	if info and info.class and not eclass then eclass = info.class end
-	if not (eclass) then return nil,nil end
-
-	if info and info.spec_name_localized then
-		spec = info.spec_name_localized
-	end
-	if eclass == "MAGE" or eclass == "HUNTER" or eclass == "WARLOCK" then
-		role = "caster"
-	end
-	if eclass == "ROGUE" then
-		role = "melee"
-	end
-	if not role and info and info.global_spec_id and sRaidFrames.specMap[info.global_spec_id] then
-		role = sRaidFrames.specMap[info.global_spec_id]
-	end
-
-	return role, spec
-end
-
+local ShouldUpdateFrameCache = false
 local function sRaidFrames_OnAttributeChanged(frame, name, value)
 	if name == "unit" then
 		ShouldUpdateFrameCache = true
@@ -1579,6 +1424,11 @@ local function sRaidFrames_OnAttributeChanged(frame, name, value)
 			frame.id = select(3, value:find("(%d+)"))
 		end
 	end
+end
+
+local function sRaidFrames_InitUnitFrame(frame)
+	frame:SetScript("OnAttributeChanged", sRaidFrames_OnAttributeChanged)
+	sRaidFrames:CreateUnitFrame(frame)
 end
 
 function sRaidFrames:UpdateFrameCache()
@@ -1628,36 +1478,21 @@ end
 
 local UnitFrame_OnLeave = BuffFrame_OnLeave
 
-local sRaidFrames_InitUnitFrame = [[
-	local header = self:GetParent()
 
-	self:SetAttribute("type1", "target")
-	self:SetAttribute("*type1", "target")
-	self:SetAttribute("toggleForVehicle", true)
-
-	self:SetWidth(header:GetAttribute("style-width"))
-	self:SetHeight(header:GetAttribute("style-height"))
-
-	header:CallMethod("CreateChildFrame", self:GetName())
-
-	local clique = header:GetFrameRef("clickcast_header")
-	if clique then
-		clique:SetAttribute("clickcast_button", self)
-		clique:RunAttribute("clickcast_register")
-	end
-]]
-
-function sRaidFrames.CreateChildFrame(header, name)
-	local self = sRaidFrames
-	local f = _G[name]
-
+-- Adapts frames created by Secure Headers
+function sRaidFrames:CreateUnitFrame(f)
 	local layout = self:GetLayout()
-
+	--f:EnableMouse(true)
 	f:RegisterForClicks("AnyUp")
+	
+	f:SetAttribute("type1", "target")
+	f:SetAttribute("*type1", "target")
+	
+	f:SetAttribute("toggleForVehicle", true)
+	--f:SetAttribute("allowVehicleTarget", true)
 
-	f:HookScript("OnEnter", UnitFrame_OnEnter)
-	f:HookScript("OnLeave", UnitFrame_OnLeave)
-	f:SetScript("OnAttributeChanged", sRaidFrames_OnAttributeChanged)
+	f:SetScript("OnEnter", UnitFrame_OnEnter)
+	f:SetScript("OnLeave", UnitFrame_OnLeave)
 
 	f.title = f:CreateFontString(nil, "ARTWORK")
 	f.title:SetFontObject(GameFontNormalSmall)
@@ -1775,25 +1610,30 @@ function sRaidFrames.CreateChildFrame(header, name)
 
 	layout.StyleUnitFrame(f)
 
-	-- f:Hide();
+	--f:Hide();
 
 	tinsert(self.frames, f)
 	ShouldUpdateFrameCache = true
+
+	ClickCastFrames = ClickCastFrames or {}
+	ClickCastFrames[f] = true
 end
 
 function sRaidFrames:CreateFrames()
+	if not self.enabled then return end
+
 	local neededGroups = #self:GetCurrentGroupSetup()
 	local createdGroups = #self.groupframes
 	for i = createdGroups+1, neededGroups do
 		self:CreateGroupFrame(i)
 	end
 	self:SetPosition()
-	self:SetGrowth()
 	self:SetGroupFilters()
+	self:SetGrowth()
 end
 
 function sRaidFrames:SetGroupFilters()
-	if privateFuncs.IsInCombat() then return end
+	if InCombatLockdown() then return end
 
 	for _, f in pairs(self.groupframes) do
 		local id = f:GetID()
@@ -1801,26 +1641,6 @@ function sRaidFrames:SetGroupFilters()
 		if frame and not frame.hidden then
 			for attribute, value in pairs(frame.attributes) do
 				f.header:SetAttribute(attribute, value or nil)
-			end
-			if LGIST and frame.magicRoles then
-				local nameList = {}
-				for _, roles in pairs({strsplit(",", frame.magicRoles)}) do -- "tank", "healer", "caster", "melee", "unknown"
-					if IsInRaid() then
-						local numRaid = GetNumGroupMembers()
-						for i = 1, numRaid do
-							local unit = ("raid%d"):format(i)
-							local _, eclass = UnitClass(unit)
-							local role = privateFuncs.LGIST_to_RoleSpec(unit, eclass)
-
-							if role == roles or (roles == "unknown" and not role)  then
-								local name = GetRaidRosterInfo(i)
-								table.insert(nameList, name)
-							end
-						end
-					end
-				end
-				f.header:SetAttribute("nameList", table.concat(nameList, ","))
-				f.header:SetAttribute("groupFilter", false)
 			end
 			f.title:SetText(frame.caption)
 			f.header:Show()
@@ -1937,7 +1757,7 @@ function sRaidFrames:StopMovingOrSizingAll(this)
 end
 
 local function sRaidFrames_OnGroupFrameEvent(frame, event)
-	if (event == "GROUP_ROSTER_UPDATE" or event == "GROUP_JOINED") and frame:IsVisible() then
+	if event == "PARTY_MEMBERS_CHANGED" and frame:IsVisible() then
   	sRaidFrames:ScheduleLeaveCombatAction("UpdateTitleVisibility", frame)
 	end
 end
@@ -1951,21 +1771,12 @@ function sRaidFrames:CreateGroupFrame(id)
 	f:SetID(id)
 
 	f.header = CreateFrame("Frame", "sRaidFramesGroupHeader" .. id, f, "SecureRaidGroupHeaderTemplate")
-	f.header:SetAttribute("template", ClickCastHeader and "ClickCastUnitTemplate,SecureUnitButtonTemplate" or "SecureUnitButtonTemplate")
-	f.header:SetAttribute("initialConfigFunction", sRaidFrames_InitUnitFrame)
+	f.header:SetAttribute("template", "SecureUnitButtonTemplate")
+	f.header.initialConfigFunction = sRaidFrames_InitUnitFrame
 	f.header:HookScript("OnEvent", sRaidFrames_OnGroupFrameEvent)
-	f.header.CreateChildFrame = sRaidFrames.CreateChildFrame
-	-- Set style presets
-	f.header:SetAttribute("style-width", layout.unitframeWidth)
-	f.header:SetAttribute("style-height", layout.unitframeHeight)
 
-	if ClickCastHeader then
-		SecureHandler_OnLoad(f.header)
-		f.header:SetFrameRef("clickcast_header", ClickCastHeader)
-	end
-
-	if not f.header:IsEventRegistered("GROUP_ROSTER_UPDATE") then f.header:RegisterEvent("GROUP_ROSTER_UPDATE") end
-	if not f.header:IsEventRegistered("GROUP_JOINED") then f.header:RegisterEvent("GROUP_JOINED") end
+	-- hack to reduce login lockup times
+	-- f.header:UnregisterEvent("UNIT_NAME_UPDATE")
 
 	f.anchor = CreateFrame("Button", "sRaidFramesAnchor"..id, self.master)
 	f.anchor:SetHeight(layout.headerHeight)
@@ -1986,7 +1797,7 @@ function sRaidFrames:CreateGroupFrame(id)
 end
 
 function sRaidFrames:SetWHP(frame, width, height, p1, relative, p2, x, y)
-	if not frame:IsProtected() or not privateFuncs.IsInCombat() then
+	if not frame:IsProtected() or not InCombatLockdown() then
 		frame:SetWidth(width)
 		frame:SetHeight(height)
 
@@ -1994,6 +1805,10 @@ function sRaidFrames:SetWHP(frame, width, height, p1, relative, p2, x, y)
 			frame:ClearAllPoints()
 			frame:SetPoint(p1, relative, p2, x, y)
 		end
+	end
+	if frame:IsProtected() then
+		frame:SetAttribute("initial-width", width)
+		frame:SetAttribute("initial-height", height)
 	end
 end
 
@@ -2046,7 +1861,7 @@ function sRaidFrames:SavePosition()
 		local dbentry = {}
 		local x, y, s = frame:GetLeft(), frame:GetTop(), frame:GetEffectiveScale()
 		x, y = x * s, y  * s
-
+		
 		dbentry.x = x
 		dbentry.y = y
 		dbentry.s = s
@@ -2109,7 +1924,7 @@ function sRaidFrames:PositionLayout(layout, xBuffer, yBuffer)
 	self:SavePosition()
 end
 
-createLDBLauncher = function()
+function createLDBLauncher()
 	local version = GetAddOnMetadata("sRaidFrames", "version") or ""
 	if LDB then
 		local launcher = LibStub("LibDataBroker-1.1"):NewDataObject("sRaidFrames", {
@@ -2118,7 +1933,7 @@ createLDBLauncher = function()
 			icon = "Interface\\Icons\\INV_Helmet_06",
 			OnClick = function(self, button)
 				if button == "LeftButton" then
-					if privateFuncs.IsInCombat() then return end
+					if InCombatLockdown() then return end
 					if sRaidFrames.master:IsVisible() then
 						sRaidFrames.master:Hide()
 					else
@@ -2139,7 +1954,7 @@ createLDBLauncher = function()
 				tooltip:AddLine("|cffffff00" .. L["Right-click for options."] .. "|r")
 			end
 		})
-
+		
 		if LDBIcon then
 			LDBIcon:Register("sRaidFrames", launcher, sRaidFrames.db.profile.minimapIcon)
 		end

@@ -1,13 +1,5 @@
 local L = LibStub("AceLocale-3.0"):GetLocale("sRaidFrames")
-local LGIST = LibStub:GetLibrary("LibGroupInSpecT-1.0", true)
-
 local sRaidFrames = sRaidFrames
-
-local addonName, NS = ...
-local privateFuncs = NS.funcs
-local IsInCombat = privateFuncs.IsInCombat
-
-local table_removeByValue
 
 function sRaidFrames:RegisterGroupSetup(name)
 	self.opt.GroupSetups[name] = {}
@@ -44,8 +36,7 @@ function sRaidFrames:DefaultGroupSetups()
 		self:CreateGroupFilter(L["By class"], 7, L["Warlocks"], {["groupFilter"] = "WARLOCK"})
 		self:CreateGroupFilter(L["By class"], 8, L["Priests"], {["groupFilter"] = "PRIEST"})
 		self:CreateGroupFilter(L["By class"], 9, L["Shamans"], {["groupFilter"] = "SHAMAN"})
-		self:CreateGroupFilter(L["By class"], 10, L["Death Knights"], {["groupFilter"] = "DEATHKNIGHT"})
-		self:CreateGroupFilter(L["By class"], 11, "Monks", {["groupFilter"] = "MONK"}) -- L["Monks"] pendint addition from Localization App
+		self:CreateGroupFilter(L["By class"], 10, "Death Knights", {["groupFilter"] = "DEATHKNIGHT"})
 	end
 
 	if not self:GetGroupSetup(L["By group"]) then
@@ -62,10 +53,10 @@ function sRaidFrames:DefaultGroupSetups()
 
 	if not self:GetGroupSetup(L["By role"]) then
 		self:RegisterGroupSetup(L["By role"])
-		self:CreateGroupFilter(L["By role"], 1, L["Tanks"], {["groupFilter"] = "WARRIOR,DEATHKNIGHT,PALADIN,MONK,DRUID"})
-		self:CreateGroupFilter(L["By role"], 2, L["Melee DPS"], {["groupFilter"] = "ROGUE,WARRIOR,DEATHKNIGHT,PALADIN,MONK,SHAMAN,DRUID"})
-		self:CreateGroupFilter(L["By role"], 3, L["Range DPS"], {["groupFilter"] = "MAGE,WARLOCK,HUNTER,PRIEST,DRUID,SHAMAN"})
-		self:CreateGroupFilter(L["By role"], 4, L["Healers"], {["groupFilter"] = "PALADIN,MONK,PRIEST,SHAMAN,DRUID"})
+		self:CreateGroupFilter(L["By role"], 1, L["Tanks"], {["groupFilter"] = "WARRIOR"})
+		self:CreateGroupFilter(L["By role"], 2, L["Melee DPS"], {["groupFilter"] = "ROGUE,WARRIOR"})
+		self:CreateGroupFilter(L["By role"], 3, L["Range DPS"], {["groupFilter"] = "MAGE,WARLOCK,HUNTER"})
+		self:CreateGroupFilter(L["By role"], 4, L["Healers"], {["groupFilter"] = "PALADIN,SHAMAN,PRIEST,DRUID"})
 	end
 end
 
@@ -236,7 +227,21 @@ function sRaidFrames:chatUpdateFilterMenu()
 					sRaidFrames:SetGrowth()
 				end,
 				values = {["default"] = L["Default"], ["up"] = L["Up"], ["down"] = L["Down"], ["left"] = L["Left"], ["right"] = L["Right"]},
-				disabled = IsInCombat,
+				disabled = InCombatLockdown,
+			}
+			self.options.args.sets.args["set".. i].args["frame".. id].args.namelist = {
+				type = 'input',
+				name = L["Players"],
+				desc = L["A comma separated list of player names, i.e: PLAYER1,PLAYER2,PLAYER3"],
+				usage = L["<PLAYER1,PLAYER2,PLAYER3>"],
+				get = function()
+								return data.attributes.nameList
+							end,
+				set = function(info, value)
+					data.attributes.nameList = value:len() > 0 and value or nil
+					self:UpdateGroupFilter(name, id, data)
+				end,
+				disabled = function() return (data.attributes.groupFilter and #data.attributes.groupFilter > 0) end,
 			}
 			self.options.args.sets.args["set".. i].args["frame".. id].args.hide = {
 				type = 'toggle',
@@ -358,7 +363,6 @@ function sRaidFrames:chatUpdateFilterMenu()
 					["MAGE"] = L["Mages"],
 					["WARLOCK"] = L["Warlocks"],
 					["DRUID"] = L["Druids"],
-					["MONK"] = "Monks", -- L["Monks"] pending addition from Localization App
 				},
 				get = function(info, key)
 								local groupFilter = { strsplit(",", data.attributes.groupFilter or "") }
@@ -452,46 +456,11 @@ function sRaidFrames:chatUpdateFilterMenu()
 								self:UpdateGroupFilter(name, id, data)
 							end,
 			}
-			self.options.args.sets.args["set".. i].args["frame".. id].args.magicroles = {
-				type = 'multiselect',
-				name = "Roles by spec",
-				desc = "Roles contained in this frame, as detected by the current spec",
-				disabled = not LGIST,
-				values = {
-					["tank"] = "Tanks",
-					["caster"] = "Range DPS",
-					["melee"] = "Melee DPS",
-					["healer"] = "Healers",
-					["unknown"] = "Unknown",
-				},
-				get = function(info, key)
-								local magicRoles = { strsplit(",", data.magicRoles or "") }
-								for _, _role in pairs(magicRoles) do
-									if tostring(key) == _role then
-											return true
-									end
-								end
-								return false
-							end,
-				set = function(info, key, value)
-								local magicRoles = data.magicRoles or ""
-								magicRoles = magicRoles:len() >0 and {strsplit(",", magicRoles)} or {}
-
-								if value then
-									table.insert(magicRoles, tostring(key))
-								else
-									magicRoles = table_removeByValue(magicRoles, tostring(key))
-								end
-
-								data.magicRoles = #magicRoles > 0 and table.concat(magicRoles, ",") or false
-								self:UpdateGroupFilter(name, id, data)
-							end,
-			}
 		end -- End For loop of frames
 	end -- End For loop of groups
 end -- End Function
 
-table_removeByValue = function(tbl, value)
+function table_removeByValue(tbl, value)
 	for k,v in pairs(tbl) do
 		if v == value then
 			table.remove(tbl, k)
