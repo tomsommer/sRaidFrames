@@ -1,8 +1,7 @@
+package-as: sRaidFrames
+enable-nolib-creation: no
 required-dependencies:
     - ace3
-
-package-as: sRaidFrames
-enable-nolib-creation: yes
 
 ignore:
   - README.md
