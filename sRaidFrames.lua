@@ -726,7 +726,7 @@ function sRaidFrames:READY_CHECK(event, author)
 end
 
 function sRaidFrames:READY_CHECK_CONFIRM(event, unitid, confirm)
-	if not string.match(unitid, "raid%d+") then return end
+--	if not string.match(unitid, "raid%d+") then return end
 
 	self:UnsetStatus(unitid, "ReadyCheck_Pending")
 	if confirm then
