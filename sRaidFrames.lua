@@ -95,7 +95,6 @@ local defaults = { profile = {
 	ShowInArena			= true,
 	ShowInParty			= true,
 	ShowInRaid			= true,
-	Show				= true,
 	BuffDisplay			= {default="own"},
 	minimapIcon 		= {},
 	VehicleSwitch		= true,
