@@ -1,4 +1,4 @@
-local HealComm = LibStub("LibHealComm-4.0", true)
+local HealComm = LibStub("LibClassicHealComm-1.0", true)
 if not HealComm then return end
 
 local GUIDmap = HealComm:GetGUIDUnitMapTable()

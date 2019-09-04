@@ -17,7 +17,7 @@ local LibGroupTalents = LibStub:GetLibrary("LibGroupTalents-1.0", true)
 local HealComm = LibStub("LibClassicHealComm-1.0", true)
 local ResComm = LibStub("LibResComm-1.0", true)
 local Media = LibStub("LibSharedMedia-3.0")
-local Banzai = LibStub("LibBanzai-2.0", true)
+-- local Banzai = LibStub("LibBanzai-2.0", true)
 local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
 local createLDBLauncher
@@ -25,7 +25,7 @@ local createLDBLauncher
 local AE2 = AceLibrary and AceLibrary:HasInstance("AceEvent-2.0") and AceLibrary("AceEvent-2.0")
 
 local EventsHealth = {"UNIT_HEALTH", "UNIT_MAXHEALTH"}
-local EventsPower = {"UNIT_POWER", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER"}
+local EventsPower = {"UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER"}
 
 Media:Register("statusbar", "Otravi", "Interface\\AddOns\\sRaidFrames\\textures\\otravi")
 Media:Register("statusbar", "Smooth", "Interface\\AddOns\\sRaidFrames\\textures\\smooth")
@@ -489,24 +489,26 @@ function sRaidFrames:EnableFrames()
 
 	self:RegisterEvent("PLAYER_TARGET_CHANGED", "UpdateTarget")
 	
-	self:RegisterEvent("UNIT_ENTERED_VEHICLE", "UpdateVehicle")
-	self:RegisterEvent("UNIT_EXITED_VEHICLE", "UpdateVehicle")
+	if not self.isClassic then
+		self:RegisterEvent("UNIT_ENTERED_VEHICLE", "UpdateVehicle")
+		self:RegisterEvent("UNIT_EXITED_VEHICLE", "UpdateVehicle")
+	end
 	self:RegisterEvent("RAID_TARGET_UPDATE", "UpdateRaidTargets")
 
 	if HealComm and self.isClassic then
-		HealComm.RegisterCallback(self, "HealComm_HealUpdated")
-		HealComm.RegisterCallback(self, "HealComm_HealStarted", "HealComm_HealUpdated")
-		HealComm.RegisterCallback(self, "HealComm_HealStopped", "HealComm_HealUpdated")
-		HealComm.RegisterCallback(self, "HealComm_HealDelayed", "HealComm_HealUpdated")
-		HealComm.RegisterCallback(self, "HealComm_ModifierChanged")
+		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealStarted", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealUpdated")
+		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealStopped", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealDelayed", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(sRaidFrames, "HealComm_ModifierChanged")
 	end
 	
 	if ResComm and self.isClassic then
-		ResComm.RegisterCallback(self, "ResComm_ResStart")
-		ResComm.RegisterCallback(self, "ResComm_ResEnd")
-		ResComm.RegisterCallback(self, "ResComm_Ressed")
-		ResComm.RegisterCallback(self, "ResComm_CanRes")
-		ResComm.RegisterCallback(self, "ResComm_ResExpired")
+		ResComm.RegisterCallback(sRaidFrames, "ResComm_ResStart")
+		ResComm.RegisterCallback(sRaidFrames, "ResComm_ResEnd")
+		ResComm.RegisterCallback(sRaidFrames, "ResComm_Ressed")
+		ResComm.RegisterCallback(sRaidFrames, "ResComm_CanRes")
+		ResComm.RegisterCallback(sRaidFrames, "ResComm_ResExpired")
 	end
 
 	if Banzai and self.isClassic then
@@ -541,7 +543,7 @@ function sRaidFrames:DisableFrames()
 
 	self:UnregisterEvent("PLAYER_TARGET_CHANGED")
 
-	if Banzai then
+	if Banzai and self.isClassic then
 		Banzai:UnregisterCallback(sRaidFrames.Banzai_Callback)
 	end
 
@@ -644,7 +646,8 @@ function sRaidFrames:Roster_UnitLeft(unitid)
 end
 
 function sRaidFrames:UpdateRoster()
-	local inRaid = GetNumGroupMembers() > 0
+	local inGroup = GetNumGroupMembers() > 0
+	local inRaid = IsInRaid()
 	local inBG = select(2, IsInInstance()) == "pvp"
 	local inArena = select(2, IsInInstance()) == "arena"
 
@@ -878,11 +881,12 @@ function sRaidFrames:UpdateUnitDetails(unit)
 				f.hpbar:SetStatusBarColor(color.r, color.g, color.b)
 			end
 		end
-		
-		if self.opt.VehicleStatus and UnitHasVehicleUI(unit) then
-			self:SetStatus(unit, "Vehicle", UnitName(self:GetVehicleUnit(unit)))
-		else
-			self:UnsetStatus(unit, "Vehicle")
+		if not self.isClassic then
+			if self.opt.VehicleStatus and UnitHasVehicleUI(unit) then
+				self:SetStatus(unit, "Vehicle", UnitName(self:GetVehicleUnit(unit)))
+			else
+				self:UnsetStatus(unit, "Vehicle")
+			end
 		end
 	end
 end
@@ -1324,7 +1328,7 @@ function sRaidFrames:UnitTooltip(frame)
 
 	GameTooltip:AddDoubleLine(name, level > 0 and level or nil, RAID_CLASS_COLORS[eclass].r, RAID_CLASS_COLORS[eclass].g, RAID_CLASS_COLORS[eclass].b, 1, 1, 1)
 	
-	if UnitHasVehicleUI(unit) then
+	if not self.isClassic and UnitHasVehicleUI(unit) then
 		GameTooltip:AddLine(UnitName(self:GetVehicleUnit(unit)))
 	end
 	
@@ -1771,6 +1775,9 @@ function sRaidFrames:FindUnitFrames(unit)
 end
 
 function sRaidFrames:GetNonVehicleUnit(unit)
+	if self.isClassic then
+		return unit
+	end
 	local noPet = unit:gsub("[pP][eE][tT](%d)", "%1")
 	if self.opt.VehicleSwitch and UnitHasVehicleUI(noPet) then
 		unit = noPet
@@ -1779,6 +1786,9 @@ function sRaidFrames:GetNonVehicleUnit(unit)
 end
 
 function sRaidFrames:GetVehicleUnit(unit)
+	if self.isClassic then
+		return unit
+	end
 	if self.opt.VehicleSwitch and UnitHasVehicleUI(unit) then
 		unit = unit .. "pet"
 		-- map raid1pet to raidpet1
