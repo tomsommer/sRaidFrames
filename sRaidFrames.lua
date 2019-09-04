@@ -716,8 +716,6 @@ function sRaidFrames:UNIT_AURA(units)
 end
 
 function sRaidFrames:READY_CHECK(event, author)
-	if not (IsRaidLeader() or IsRaidOfficer()) then return end
-
 	local authorid = self:GetUnitByName(author)
 
 	for unitid in pairs(self:GetAllUnits()) do
