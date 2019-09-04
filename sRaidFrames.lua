@@ -85,8 +85,6 @@ local defaults = { profile = {
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
 	RangeAlpha 			= 0.5,
-	HighlightTarget		= false,
-	HighlightHeals		= true,
 	heals 				= {channel=true, direct=true, hot=false, bomb=true},
 	HighlightDebuffs 	= "onlyself",
 	Layout				= "CTRA_WithBorders",
@@ -1850,7 +1848,7 @@ end
 
 function sRaidFrames:PositionLayout(layout, xBuffer, yBuffer)
 	local xMod, yMod, i = 0, 0, -1
-	local frameHeight = self:GetLayout().unitframeHeight+3+self.opt.Spacing
+	local frameHeight = self:GetLayout().unitframeHeight + 3 + self.opt.Spacing
 	local framePadding = MEMBERS_PER_RAID_GROUP
 
 	for k,frame in pairs(self.groupframes) do

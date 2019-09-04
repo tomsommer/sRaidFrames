@@ -269,46 +269,12 @@ sRaidFrames.options = {
 					end,
 					order = 190,
 				},
-				aggro = {
-					name = L["Highlight units with aggro"],
-					type = "toggle",
-					desc = L["Turn the border of units who have aggro red"],
-					get = GetVar,
-					set = SetVar,
-					arg = "AggroCheck",
-					order = 40,
-					width = "full",
-					disabled = function() return not LibStub("LibBanzai-2.0", true) end,
-				},
-
-				highlight = {
-						name = L["Highlight targetted unit"],
-						type = "toggle",
-						desc = L["Turn the border of unit you are targetting orange"],
-						get = GetVar,
-						set = SetVar,
-						arg = "HighlightTarget",
-						order = 30,
-						width = "full",
-				},
-
 				heals = {
 					name = L["Heal tracking"],
 					type = "group",
 					desc = L["Options for heal tracking"],
-					disabled = function() return not LibStub("LibHealComm-4.0", true) end,
 					dialogInline = true,
 					args = {
-						enable = {
-							name = L["Enable heal tracking"],
-							type = "toggle",
-							desc = L["Turn the border of units getting heals green"],
-							get = GetVar,
-							set = SetVar,
-							arg = "HighlightHeals",
-							width = "double",
-							order = 1,
-						},
 						direct = {
 							name = L["Show direct heals"],
 							type = "toggle",
