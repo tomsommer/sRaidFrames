@@ -14,16 +14,16 @@ end
 
 function sRaidFrames:GetHealFlag()
 	local flag = 0
-	if self.opt.heals.direct then
+	if self.opt.heals.direct and HealComm.DIRECT_HEALS then
 		flag = flag+HealComm.DIRECT_HEALS
 	end
-	if self.opt.heals.channel then
+	if self.opt.heals.channel and HealComm.CHANNEL_HEALS then
 		flag = flag+HealComm.CHANNEL_HEALS
 	end
-	if self.opt.heals.hot then
+	if self.opt.heals.hot and HealComm.HOT_HEALS then
 		flag = flag+HealComm.HOT_HEALS
 	end
-	if self.opt.heals.bomb and not sRaidFrames.isClassic then
+	if self.opt.heals.bomb and HealComm.BOMB_HEALS then
 		flag = flag+HealComm.BOMB_HEALS
 	end
 	return flag
