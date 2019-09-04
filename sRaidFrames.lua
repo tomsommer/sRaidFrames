@@ -5,8 +5,8 @@ local GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumGroupMembers, GetR
       GetNumTalentTabs, GetTalentTabInfo, GetSpellInfo, GetNumGroupMembers, GetRaidRosterInfo
 local UnitClass, UnitInRange, UnitIsVisible, UnitIsUnit, UnitName, UnitIsDead, UnitIsGhost, UnitIsConnected, UnitIsAFK =
       UnitClass, UnitInRange, UnitIsVisible, UnitIsUnit, UnitName, UnitIsDead, UnitIsGhost, UnitIsConnected, UnitIsAFK
-local UnitHealth, UnitHealthMax, UnitPowerType, UnitMana, UnitManaMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace =
-      UnitHealth, UnitHealthMax, UnitPowerType, UnitMana, UnitManaMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace
+local UnitHealth, UnitHealthMax, UnitPowerType, UnitPower, UnitPowerMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace =
+      UnitHealth, UnitHealthMax, UnitPowerType, UnitPower, UnitPowerMax, UnitDebuff, UnitBuff, UnitAffectingCombat, UnitRace
 local UnitExists, IsAltKeyDown = UnitExists, IsAltKeyDown
 local GetRaidTargetIndex = GetRaidTargetIndex
 
@@ -68,7 +68,7 @@ local defaults = { profile = {
 	BorderColor			= {r = 1, g = 1, b = 1, a = 1},
 	HealthTextColor		= {r = 1, g = 1, b = 1, a = 1},
 	HealthBarColorByClass = false,
-	Growth				= {["default"] = "down"},
+	GrowthDefault		= "down",
 	Spacing				= 0,
 	ShowGroupTitles		= true,
 	UnitTooltipMethod	= "notincombat",
@@ -176,12 +176,6 @@ function sRaidFrames:OnInitialize()
 			self.opt.BuffFilter[string.lower(i)] = k;
 			self.opt.BuffFilter[i] = nil;
 		end
-	end
-	-- Conversion to per-group growth settings
-	if self.opt.Growth and not self.opt.Growth["default"] then
-		local growth = self.opt.Growth
-		self.opt.Growth = {};
-		self.opt.Growth["default"] = growth;
 	end
 
 	self.cooldownSpells = {}
@@ -989,8 +983,8 @@ function sRaidFrames:UpdateUnitPower(munit)
 			f.mpbar:SetValue(0)
 		else
 			local color = PowerBarColor[powerType]
-			local mp = UnitMana(unit) or 0
-			local mpmax = UnitManaMax(unit)
+			local mp = UnitPower(unit) or 0
+			local mpmax = UnitPowerMax(unit)
 			local mpp = (mpmax ~= 0) and ceil((mp / mpmax) * 100) or 0
 			f.mpbar:SetStatusBarColor(color.r, color.g, color.b)
 			f.mpbar:SetValue(mpp)
@@ -1313,9 +1307,12 @@ function sRaidFrames:QueryTooltipDisplay(value)
 end
 
 function sRaidFrames:UnitTooltip(frame)
-	local name, rank, subgroup, level, class, eclass, zone, _, _, role  = GetRaidRosterInfo(frame.id)
+	if frame.id then
+		local name, rank, subgroup, level, class, eclass, zone, _, _, role  = GetRaidRosterInfo(frame.id)
+	end 
+
 	local unit = frame:GetAttribute("unit")
-	if not unit or not name then return end
+	if not unit then return end
 	
 	GameTooltip:SetOwner(frame)
 	
@@ -1325,7 +1322,11 @@ function sRaidFrames:UnitTooltip(frame)
 			return
 	end
 
-	GameTooltip:AddDoubleLine(name, level > 0 and level or nil, RAID_CLASS_COLORS[eclass].r, RAID_CLASS_COLORS[eclass].g, RAID_CLASS_COLORS[eclass].b, 1, 1, 1)
+	local class, classFile = UnitClass(unit)
+	local name = UnitName(unit)
+	local level  = UnitLevel(unit)
+
+	GameTooltip:AddDoubleLine(name, level, RAID_CLASS_COLORS[classFile].r, RAID_CLASS_COLORS[classFile].g, RAID_CLASS_COLORS[classFile].b, 1, 1, 1)
 	
 	if not self.isClassic and UnitHasVehicleUI(unit) then
 		GameTooltip:AddLine(UnitName(self:GetVehicleUnit(unit)))
@@ -1347,7 +1348,9 @@ function sRaidFrames:UnitTooltip(frame)
 		GameTooltip:AddLine(UnitRace(unit) .. " " .. class, 1, 1, 1);
 	end
 	
-	GameTooltip:AddDoubleLine(zone or UNKNOWN, L["Group %d"]:format(subgroup), 1, 1, 1, 1, 1, 1);
+	if zone or subgroup then
+		GameTooltip:AddDoubleLine(zone or UNKNOWN, L["Group %d"]:format(subgroup), 1, 1, 1, 1, 1, 1);
+	end
 
 	local cooldownSpell = self.cooldownSpells[eclass]
 	if oRA and oRA:HasModule("OptionalCooldown") and cooldownSpell then
@@ -1377,7 +1380,8 @@ local function sRaidFrames_OnAttributeChanged(frame, name, value)
 	end
 end
 
-local function sRaidFrames_InitUnitFrame(frame)
+local function sRaidFrames_InitUnitFrame(header, frameName)
+	local frame = _G[frameName]
 	frame:SetScript("OnAttributeChanged", sRaidFrames_OnAttributeChanged)
 	sRaidFrames:CreateUnitFrame(frame)
 end
@@ -1431,8 +1435,9 @@ local UnitFrame_OnLeave = BuffFrame_OnLeave
 
 
 -- Adapts frames created by Secure Headers
-function sRaidFrames:CreateUnitFrame(f)
+function sRaidFrames:CreateUnitFrame(...)
 	local layout = self:GetLayout()
+	local f = select("#", ...) > 1 and CreateFrame(...) or select(1, ...)
 	--f:EnableMouse(true)
 	f:RegisterForClicks("AnyUp")
 	
@@ -1559,6 +1564,7 @@ function sRaidFrames:CreateUnitFrame(f)
 	f.statustext:SetFontObject(GameFontHighlightSmall)
 	f.statustext:SetJustifyH("CENTER")
 
+	f:ClearAllPoints()
 	layout.StyleUnitFrame(f)
 
 	--f:Hide();
@@ -1586,90 +1592,75 @@ end
 function sRaidFrames:SetGroupFilters()
 	if InCombatLockdown() then return end
 
-	for _, f in pairs(self.groupframes) do
-		local id = f:GetID()
-		local frame = self:GetCurrentGroupSetup()[id]
-		if frame and not frame.hidden then
-			for attribute, value in pairs(frame.attributes) do
-				f.header:SetAttribute(attribute, value or nil)
+	for _, groupframe in pairs(self.groupframes) do
+		local id = groupframe:GetID()
+		local frameConfig = self:GetCurrentGroupSetup()[id]
+
+		if frameConfig and not frameConfig.hidden then
+			for attribute, value in pairs(frameConfig.attributes) do
+				groupframe.header:SetAttribute(attribute, value or nil)
 			end
-			f.title:SetText(frame.caption)
-			f.header:Show()
+			groupframe.title:SetText(frameConfig.caption)
+			groupframe.header:Show()
 		else
-			f.header:Hide()
-			f.header:SetAttribute("groupFilter", false)
-			f.header:SetAttribute("nameList", false)
+			groupframe.header:Hide()
+			groupframe.header:SetAttribute("groupFilter", false)
+			groupframe.header:SetAttribute("nameList", false)
 		end
-		self:UpdateTitleVisibility(f.header)
+		self:UpdateTitleVisibility(groupframe.header)
 	end
 end
 
-function sRaidFrames:GroupFrameGetNumChildren(frame)
+function sRaidFrames:GroupFrameGetNumChildren(groupframe)
 	local i = 1
-	local child = frame:GetAttribute("child"..i)
+	local child = groupframe:GetAttribute("child"..i)
 	while child do
 		if not child:IsVisible() or not UnitExists(child:GetAttribute("unit")) then
 			break
 		end
 		i = i + 1
-		child = frame:GetAttribute("child"..i)
+		child = groupframe:GetAttribute("child"..i)
 	end
 	return (i-1)
 end
 
-function sRaidFrames:UpdateTitleVisibility(frame)
-	if self.opt.ShowGroupTitles and self:GroupFrameGetNumChildren(frame) > 0 then
-		frame:GetParent().anchor:Show()
+function sRaidFrames:UpdateTitleVisibility(groupframe)
+	if self.opt.ShowGroupTitles and self:GroupFrameGetNumChildren(groupframe) > 0 then
+		groupframe:GetParent().anchor:Show()
 	else
-		frame:GetParent().anchor:Hide()
+		groupframe:GetParent().anchor:Hide()
 	end
 end
 
 function sRaidFrames:SetGrowth()
-	for i, f in pairs(self.groupframes) do
-		f.header:ClearAllPoints();
-		local growth = self.opt.Growth["default"];
-		if not self.opt.Growth[self.opt.GroupSetup] then self.opt.Growth[self.opt.GroupSetup] = {}; end
-		if self.opt.Growth[self.opt.GroupSetup][i] and self.opt.Growth[self.opt.GroupSetup][i] ~= "default" then
-			growth = self.opt.Growth[self.opt.GroupSetup][i];
-		end
-		if growth == "up" then
-			f.header:SetAttribute("point", "TOP")
-			f.header:SetPoint("BOTTOM", f.anchor, "TOP")
-		elseif growth == "right" then
-			f.header:SetAttribute("point", "LEFT")
-			f.header:SetPoint("LEFT", f.anchor, "RIGHT")
-		elseif growth == "left" then
-			f.header:SetAttribute("point", "RIGHT")
-			f.header:SetPoint("RIGHT", f.anchor, "LEFT")
-		elseif growth == "down" then
-			f.header:SetAttribute("point", "BOTTOM")
-			f.header:SetPoint("TOP", f.anchor, "BOTTOM")
-		end
-	end
-	self:SetSpacing()
-end
+	local spacing = self.opt.Spacing
+	
+	for i, groupframe in pairs(self.groupframes) do
+		local growth = self.opt.GrowthDefault
+		local xMod = growth == "right" and 1 or growth == "left" and -1 or 0
+		local yMod = growth == "down" and -1 or growth == "up" and 1 or 0
 
-function sRaidFrames:SetSpacing()
-	local s = self.opt.Spacing
-	for i, f in pairs(self.groupframes) do
-		local growth = self.opt.Growth["default"];
-		if self.opt.Growth[self.opt.GroupSetup][i] and self.opt.Growth[self.opt.GroupSetup][i] ~= "default" then
-			growth = self.opt.Growth[self.opt.GroupSetup][i];
-		end
-		if growth == "down" then
-			f.header:SetAttribute("xOffset", 0)
-			f.header:SetAttribute("yOffset", s)
-		elseif growth == "up" then
-			f.header:SetAttribute("xOffset", 0)
-			f.header:SetAttribute("yOffset", -s)
-		elseif growth == "left" then
-			f.header:SetAttribute("xOffset", s)
-			f.header:SetAttribute("yOffset", 0)
+		groupframe.header:ClearAllPoints()
+		if growth == "up" then
+		--	groupframe.header:SetAttribute("point", "TOP")
+			groupframe.header:SetPoint("BOTTOM", groupframe.anchor, "TOP")
 		elseif growth == "right" then
-			f.header:SetAttribute("xOffset", -s)
-			f.header:SetAttribute("yOffset", 0)
+		--	groupframe.header:SetAttribute("point", "LEFT")
+			groupframe.header:SetPoint("LEFT", groupframe.anchor, "RIGHT")
+		elseif growth == "left" then
+			--groupframe.header:SetAttribute("point", "RIGHT")
+			groupframe.header:SetPoint("RIGHT", groupframe.anchor, "LEFT")
+		elseif growth == "down" then
+		--	groupframe.header:SetAttribute("point", "BOTTOM")
+			groupframe.header:SetPoint("TOP", groupframe.anchor, "BOTTOM")
 		end
+
+		groupframe.header:SetAttribute("xOffset", xMod * spacing)
+		groupframe.header:SetAttribute("yOffset", yMod * spacing)
+		groupframe.header:SetAttribute("xMod", xMod)
+		groupframe.header:SetAttribute("yMod", yMod)
+		
+
 	end
 end
 
@@ -1709,9 +1700,15 @@ end
 
 local function sRaidFrames_OnGroupFrameEvent(frame, event)
 	if event == "PARTY_MEMBERS_CHANGED" and frame:IsVisible() then
-  	sRaidFrames:ScheduleLeaveCombatAction("UpdateTitleVisibility", frame)
+  		sRaidFrames:ScheduleLeaveCombatAction("UpdateTitleVisibility", frame)
 	end
 end
+
+local sRaidFrames_SecureInitUnitFrame = [[
+	local header = self:GetParent()
+	self:SetAttribute("isHeaderDriven", true)
+	header:CallMethod("initialConfigFunction", self:GetName())
+]]
 
 function sRaidFrames:CreateGroupFrame(id)
 	local layout = self:GetLayout()
@@ -1723,6 +1720,11 @@ function sRaidFrames:CreateGroupFrame(id)
 
 	f.header = CreateFrame("Frame", "sRaidFramesGroupHeader" .. id, f, "SecureRaidGroupHeaderTemplate")
 	f.header:SetAttribute("template", "SecureUnitButtonTemplate")
+	f.header:SetAttribute("showPlayer", true)
+	f.header:SetAttribute("showRaid", true)
+	f.header:SetAttribute("showParty", true)
+	f.header:SetAttribute("initial-unitWatch", true)
+	f.header:SetAttribute("initialConfigFunction", sRaidFrames_SecureInitUnitFrame)
 	f.header.initialConfigFunction = sRaidFrames_InitUnitFrame
 	f.header:HookScript("OnEvent", sRaidFrames_OnGroupFrameEvent)
 
@@ -1752,14 +1754,15 @@ function sRaidFrames:SetWHP(frame, width, height, p1, relative, p2, x, y)
 		frame:SetWidth(width)
 		frame:SetHeight(height)
 
-		if (p1) then
+		if p1 then
 			frame:ClearAllPoints()
 			frame:SetPoint(p1, relative, p2, x, y)
 		end
 	end
+
 	if frame:IsProtected() then
-		frame:SetAttribute("initial-width", width)
-		frame:SetAttribute("initial-height", height)
+		frame:SetAttribute("style-width", width)
+		frame:SetAttribute("style-height", height)
 	end
 end
 

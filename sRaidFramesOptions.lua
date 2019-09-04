@@ -152,10 +152,10 @@ sRaidFrames.options = {
 					type = "select",
 					desc = L["Set the default growth of the raid frames"],
 					get = function()
-						return sRaidFrames.opt.Growth["default"]
+						return sRaidFrames.opt.GrowthDefault
 					end,
 					set = function(info, value)
-						sRaidFrames.opt.Growth["default"] = value
+						sRaidFrames.opt.GrowthDefault = value
 						sRaidFrames:SetGrowth()
 					end,
 					values = {["up"] = L["Up"], ["down"] = L["Down"], ["left"] = L["Left"], ["right"] = L["Right"]},
@@ -167,15 +167,15 @@ sRaidFrames.options = {
 					name = L["Frame Spacing"],
 					type = "range",
 					desc = L["Set the spacing between each of the raid frames"],
-					min = -20,
-					max = 20,
+					min = -200,
+					max = 200,
 					step = 1,
 					get = function()
 						return sRaidFrames.opt.Spacing
 					end,
 					set = function(info, s)
 						sRaidFrames.opt.Spacing = s
-						sRaidFrames:SetSpacing()
+						sRaidFrames:SetGrowth()
 					end,
 					disabled = InCombatLockdown,
 					order = 10,
