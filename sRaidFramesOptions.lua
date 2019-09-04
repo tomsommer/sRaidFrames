@@ -282,7 +282,6 @@ sRaidFrames.options = {
 							get = function() return sRaidFrames.opt.heals.direct end,
 							set = function(info, value) sRaidFrames.opt.heals.direct = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
 							order = 2,
-							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
 						},
 						channel = {
 							name = L["Show channeled heals"],
@@ -291,7 +290,6 @@ sRaidFrames.options = {
 							get = function() return sRaidFrames.opt.heals.channel end,
 							set = function(info, value) sRaidFrames.opt.heals.channel = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
 							order = 3,
-							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
 						},
 						hot = {
 							name = L["Show HoT heals"],
@@ -300,7 +298,6 @@ sRaidFrames.options = {
 							get = function() return sRaidFrames.opt.heals.hot end,
 							set = function(info, value) sRaidFrames.opt.heals.hot = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
 							order = 4,
-							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
 						},
 						bomb = {
 							name = L["Show bloom heals"],
@@ -309,7 +306,6 @@ sRaidFrames.options = {
 							get = function() return sRaidFrames.opt.heals.bomb end,
 							set = function(info, value) sRaidFrames.opt.heals.bomb = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
 							order = 5,
-							disabled = function() return not sRaidFrames.opt.HighlightHeals end,
 						},
 					},
 					order = 350,
