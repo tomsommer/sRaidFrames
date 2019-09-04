@@ -24,6 +24,9 @@ local createLDBLauncher
 
 local AE2 = AceLibrary and AceLibrary:HasInstance("AceEvent-2.0") and AceLibrary("AceEvent-2.0")
 
+local EventsHealth = {"UNIT_HEALTH", "UNIT_MAXHEALTH"}
+local EventsPower = {"UNIT_MANA", "UNIT_RAGE", "UNIT_ENERGY", "UNIT_FOCUS", "UNIT_RUNIC_POWER", "UNIT_MAXMANA", "UNIT_MAXRAGE", "UNIT_MAXFOCUS", "UNIT_MAXENERGY", "UNIT_MAXRUNIC_POWER", "UNIT_DISPLAYPOWER"}
+
 Media:Register("statusbar", "Otravi", "Interface\\AddOns\\sRaidFrames\\textures\\otravi")
 Media:Register("statusbar", "Smooth", "Interface\\AddOns\\sRaidFrames\\textures\\smooth")
 Media:Register("statusbar", "Striped", "Interface\\AddOns\\sRaidFrames\\textures\\striped")
@@ -65,7 +68,6 @@ local defaults = { profile = {
 	BorderColor			= {r = 1, g = 1, b = 1, a = 1},
 	HealthTextColor		= {r = 1, g = 1, b = 1, a = 1},
 	HealthBarColorByClass = false,
-	HealthFrequentUpdates = false,
 	Growth				= {["default"] = "down"},
 	Spacing				= 0,
 	ShowGroupTitles		= true,
@@ -83,8 +85,6 @@ local defaults = { profile = {
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
 	RangeAlpha 			= 0.5,
-	ReadyCheck			= true,
-	AggroCheck			= false,
 	HighlightTarget		= false,
 	HighlightHeals		= true,
 	heals 				= {channel=true, direct=true, hot=false, bomb=true},
@@ -143,12 +143,13 @@ function sRaidFrames:OnInitialize()
 	self.enabled = false
 	self.isClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 	self.frames, self.groupframes = {}, {}, {}
-	self.res, self.RangeChecks = {}, {}
+	self.ResurrectionInfo, self.RangeChecks = {}, {}
 	self.FramesByUnit = {}
 	self.statusstate = {}
 	self.statusElements = {}
 	self.validateStatusElements = {}
 	self.vehicleUpdate = {}
+
 	--Conversion to new checkbox buff filtering
 	if self.opt.BuffBlacklist then
 		for i, k in pairs(self.opt.BuffBlacklist) do
@@ -219,35 +220,17 @@ function sRaidFrames:OnInitialize()
 	if sRaidFrames.isClassic then
 		local statusSpellTable = {
 			[19753] = true, -- Divine Intervention
-			--[35079] = true, -- Misdirection
 			[5384] = true, -- Feign Death
-		--	[3411] = true, -- Intervene
-		--	[29166] = true, -- Innervate
 			[20711] = true, -- Spirit of Redemption
 			[871] = true, -- Shield Wall
 			[12975] = true, -- Last Stand
-			-- [45438] = true, -- Ice Block
-			--[40733] = true, -- Divine Shield
-		-- 	[26889] = true, -- Vanish
-			-- [39666] = true, -- Cloak of Shadows
 			[66] = true, -- Invisibility
 			[1787] = true, -- Stealth
-		--	[38541] = true, -- Evasion
-		--	[10060] = true, -- Power Infusion
-		--	[32182] = true, -- Heroism
-		--	[2825] = true, -- Bloodlust
 			[6346] = true, -- Fear Ward
 			[15473] = true, -- Shadowform
 			[498] = true, -- Divine Protection
 			[10278] = true, -- Hand of Protection
 			[22812] = true, -- Barkskin
-		--	[33206] = true, -- Pain Suppression
-		--	[61336] = true, -- Survival Instincts
-		--	[55233] = true, -- Vampiric Blood
-		--	[48792] = true, -- Icebound Fortitude
-		--	[48707] = true, -- Anti-Magic Shell
-		--	[51271] = true, -- Unbreakable Armor
-			--[47788] = true, -- Guardian Spirit
 		}
 	end
 
@@ -277,14 +260,14 @@ function sRaidFrames:OnInitialize()
 
 	self:AddStatusMap("Aggro", 50, {"border"}, "Aggro", {r = 1, g = 0, b = 0})
 	self:AddStatusMap("Target", 55, {"border"}, "Target", {r = 1, g = 0.75, b = 0})
-	self:AddStatusMap("Raid Icon: Star", 60, {"statusbar"}, "Star", {r = 1, g=1, b=0}, true)
-	self:AddStatusMap("Raid Icon: Circle", 60, {"statusbar"}, "Circle", {r = 1, g=0.5, b=0,a=1}, true)
-	self:AddStatusMap("Raid Icon: Diamond", 60, {"statusbar"}, "Diamond", {r = 1, g=0, b=1,a=1}, true)
-	self:AddStatusMap("Raid Icon: Triangle", 60, {"statusbar"}, "Triangle", {r=0, g=1, b=0,a=1}, true)
-	self:AddStatusMap("Raid Icon: Moon", 60, {"statusbar"}, "Moon", {r=1, g=1, b=1,a =1}, true)
-	self:AddStatusMap("Raid Icon: Square", 60, {"statusbar"}, "Square", {r=0.4156862745098, g=0.8078431372549, b=0.96470588235294, a=1}, true);
-	self:AddStatusMap("Raid Icon: Cross", 60, {"statusbar"}, "Cross", {r=1, g=0, b=0, a=1}, true);
-	self:AddStatusMap("Raid Icon: Skull", 60, {"statusbar"}, "Skull", {r=1, g=1, b=1, a=1}, true);
+	self:AddStatusMap("RaidIcon_Star", 60, {"statusbar"}, "Star", {r = 1, g=1, b=0}, true)
+	self:AddStatusMap("RaidIcon_Circle", 60, {"statusbar"}, "Circle", {r = 1, g=0.5, b=0,a=1}, true)
+	self:AddStatusMap("RaidIcon_Diamond", 60, {"statusbar"}, "Diamond", {r = 1, g=0, b=1,a=1}, true)
+	self:AddStatusMap("RaidIcon_Triangle", 60, {"statusbar"}, "Triangle", {r=0, g=1, b=0,a=1}, true)
+	self:AddStatusMap("RaidIcon_Moon", 60, {"statusbar"}, "Moon", {r=1, g=1, b=1,a =1}, true)
+	self:AddStatusMap("RaidIcon_Square", 60, {"statusbar"}, "Square", {r=0.4156862745098, g=0.8078431372549, b=0.96470588235294, a=1}, true);
+	self:AddStatusMap("RaidIcon_Cross", 60, {"statusbar"}, "Cross", {r=1, g=0, b=0, a=1}, true);
+	self:AddStatusMap("RaidIcon_Skull", 60, {"statusbar"}, "Skull", {r=1, g=1, b=1, a=1}, true);
 
 	self:AddStatusMap("Debuff_Curse", 55, {"background"}, "Cursed", {r=1, g=0, b=0.75, a=0.5})
 	self:AddStatusMap("Debuff_Magic", 54, {"background"}, "Magic", {r=1, g=0, b=0, a=0.5})
@@ -314,44 +297,19 @@ function sRaidFrames:OnInitialize()
 		self:AddStatusMap("Buff_10278", 53, {"statusbar"}, L["Protection"], {r=1,g=1,b=1,a=1})
 		-- Barkskin
 		self:AddStatusMap("Buff_22812", 52, {"statusbar"}, SpellCache[22812], {r=1,g=1,b=1,a=1})
-		-- Pain Suppression
-		self:AddStatusMap("Buff_33206", 53, {"statusbar"}, SpellCache[33206], {r=1,g=1,b=1,a=1})
-		-- Anti-Magic Shell
-		self:AddStatusMap("Buff_48707", 52, {"statusbar"}, SpellCache[48707], {r=1,g=1,b=1,a=1})
-		-- Icebound Fortitude
-		self:AddStatusMap("Buff_48792", 53, {"statusbar"}, L["IBF"], {r=1,g=1,b=1,a=1})
-		-- Vampiric Blood
-		--self:AddStatusMap("Buff_55233", 52, {"statusbar"}, SpellCache[55233], {r=1,g=1,b=1,a=1})
-		-- Survival Instincts
-		self:AddStatusMap("Buff_61336", 52, {"statusbar"}, SpellCache[61336], {r=1,g=1,b=1,a=1})
-		-- Unbreakable Armor
-		self:AddStatusMap("Buff_51271", 53, {"statusbar"}, L["Unbreakable"], {r=1,g=1,b=1,a=1})
-		-- Guardian Spirit
-		self:AddStatusMap("Buff_47788", 53, {"statusbar"}, L["Guardian"], {r=1,g=1,b=1,a=1})
-		
 		-- Feign Death
 		self:AddStatusMap("Buff_5384", 50, {"statusbar"}, SpellCache[5384], {r=0,g=1,b=0,a=1})
 		-- Cloak of Shadows
 		self:AddStatusMap("Buff_39666", 50, {"statusbar"}, SpellCache[39666], {r=1,g=1,b=1,a=1})
 		-- Divine Shield
-		--self:AddStatusMap("Buff_40733", 50, {"statusbar"}, SpellCache[40733], {r=1,g=1,b=1,a=1})
-		-- Power Infusion
-		self:AddStatusMap("Buff_10060", 50, {"statusbar"}, L["Infused"], {r=1,g=1,b=1,a=1})
-
-		-- Misdirection
-		-- self:AddStatusMap("Buff_35079", 45, {"statusbar"}, SpellCache[35079], {r=0,g=1,b=0,a=1})
-		-- Intervene
-		--self:AddStatusMap("Buff_3411", 45, {"statusbar"}, SpellCache[3411], {r=0,g=1,b=0,a=1})
+		self:AddStatusMap("Buff_642", 50, {"statusbar"}, SpellCache[642], {r=1,g=1,b=1,a=1})
 		-- Fear Ward
 		self:AddStatusMap("Buff_6346", 40, {"statusbar"}, SpellCache[6346], {r=1,g=1,b=0,a=1})
-		-- Heroism
-		--self:AddStatusMap("Buff_32182", 39, {"statusbar"}, SpellCache[32182], {r=1,g=1,b=1,a=1})
-		-- Bloodlust
-		--self:AddStatusMap("Buff_2825", 39, {"statusbar"}, SpellCache[2825], {r=1,g=1,b=1,a=1})
-
+		-- Healcomm
 		self:AddStatusMap("Heal", 36, {"statusbar"}, "Inc. heal", {r = 0, g = 1, b = 0})
 		-- Shadowform
 		self:AddStatusMap("Buff_15473", 35, {"statusbar"}, SpellCache[15473], {r=1,g=0,b=0.75,a=1})
+
 	end
 
 	self:AddStatusMap("Vehicle", 56, {"statusbar"}, "On Vehicle", {r=1,g=1,b=1,a=1})
@@ -499,7 +457,6 @@ function sRaidFrames:OnEnable()
 	Media.RegisterCallback(self, "LibSharedMedia_SetGlobal")
 
 	self:UpdateRoster()
-	self:ToggleFrequentUpdates()
 end
 
 function sRaidFrames:InitRangeChecks()
@@ -513,8 +470,6 @@ function sRaidFrames:InitRangeChecks()
 	self:ScanSpellbookForRange()
 end
 
-local EventsHealth = {"UNIT_HEALTH", "UNIT_MAXHEALTH"}
-local EventsPower = {"UNIT_MANA", "UNIT_RAGE", "UNIT_ENERGY", "UNIT_FOCUS", "UNIT_RUNIC_POWER", "UNIT_MAXMANA", "UNIT_MAXRAGE", "UNIT_MAXFOCUS", "UNIT_MAXENERGY", "UNIT_MAXRUNIC_POWER", "UNIT_DISPLAYPOWER"}
 
 function sRaidFrames:UpdateRaidTargets()
 	for unit in pairs(sRaidFrames:GetAllUnits()) do
@@ -564,6 +519,10 @@ function sRaidFrames:EnableFrames()
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 
+	if self.isClassic then
+		self.master:SetScript("OnUpdate", function() sRaidFrames:FrequentHealthUpdate() end)
+	end
+
 	self.rangeTimer = self:ScheduleRepeatingTimer("RangeCheck", self.opt.RangeFrequency)
 
 	self:UpdateRoster()
@@ -608,14 +567,6 @@ function sRaidFrames:DisableFrames()
 	
 	self.enabled = false
 	self.master:Hide()
-end
-
-function sRaidFrames:ToggleFrequentUpdates()
-	if self.opt.HealthFrequentUpdates and self.isClassic then
-		self.master:SetScript("OnUpdate", function() sRaidFrames:FrequentHealthUpdate() end)
-	else
-		self.master:SetScript("OnUpdate", nil)
-	end
 end
 
 function sRaidFrames:LibSharedMedia_SetGlobal(type, handle)
@@ -762,7 +713,7 @@ function sRaidFrames:UNIT_AURA(units)
 end
 
 function sRaidFrames:READY_CHECK(event, author)
-	if not self.opt.ReadyCheck or not (IsRaidLeader() or IsRaidOfficer()) then return end
+	if not (IsRaidLeader() or IsRaidOfficer()) then return end
 
 	local authorid = self:GetUnitByName(author)
 
@@ -774,8 +725,6 @@ function sRaidFrames:READY_CHECK(event, author)
 end
 
 function sRaidFrames:READY_CHECK_CONFIRM(event, unitid, confirm)
-	if not self.opt.ReadyCheck then return end
-
 	if not string.match(unitid, "raid%d+") then return end
 
 	self:UnsetStatus(unitid, "ReadyCheck_Pending")
@@ -787,8 +736,6 @@ function sRaidFrames:READY_CHECK_CONFIRM(event, unitid, confirm)
 end
 
 function sRaidFrames:READY_CHECK_FINISHED()
-	if not self.opt.ReadyCheck then return end
-
 	for unitid in pairs(self:GetAllUnits()) do
 		self:UnsetStatus(unitid, "ReadyCheck_Pending")
 		self:UnsetStatus(unitid, "ReadyCheck_Ready")
@@ -815,7 +762,6 @@ end
 
 function sRaidFrames.Banzai_Callback(aggro, name, ...)
 	local self = sRaidFrames
-	if not self.opt.AggroCheck then return end
 
 	local unit = self:GetUnitByName(name)
 	if not unit or not self:IsTracking(unit) then return end
@@ -831,7 +777,7 @@ end
 function sRaidFrames:ResComm_ResStart(event, _, _, target)
 	local unit = self:GetUnitByName(target)
 	if unit then
-		self.res[unit] = 3
+		self.ResurrectionInfo[unit] = 3
 		self:UpdateUnitHealth(unit)
 	end
 end
@@ -841,7 +787,7 @@ function sRaidFrames:ResComm_ResEnd(event, _, target)
 	
 	local unit = self:GetUnitByName(target)
 	if unit then
-		self.res[unit] = nil
+		self.ResurrectionInfo[unit] = nil
 		self:UpdateUnitHealth(unit)
 	end
 end
@@ -849,7 +795,7 @@ end
 function sRaidFrames:ResComm_CanRes(event, target)
 	local unit = self:GetUnitByName(target)
 	if unit then
-		self.res[unit] = 1
+		self.ResurrectionInfo[unit] = 1
 		self:UpdateUnitHealth(unit)
 	end
 end
@@ -857,7 +803,7 @@ end
 function sRaidFrames:ResComm_Ressed(event, target)
 	local unit = self:GetUnitByName(target)
 	if unit then
-		self.res[unit] = 2
+		self.ResurrectionInfo[unit] = 2
 		self:UpdateUnitHealth(unit)
 	end
 end
@@ -865,7 +811,7 @@ end
 function sRaidFrames:ResComm_ResExpired(event, target)
 	local unit = self:GetUnitByName(target)
 	if unit then
-		self.res[unit] = nil
+		self.ResurrectionInfo[unit] = nil
 		self:UpdateUnitHealth(unit)
 	end
 end
@@ -999,9 +945,9 @@ function sRaidFrames:UpdateUnitHealth(munit)
 		local status, dead, ghost = nil, UnitIsDead(unit), UnitIsGhost(unit)
 		
 		if not UnitIsConnected(munit) then status = "|cffff0000"..L["Offline"].."|r"
-		elseif dead and self.res[munit] == 1 then status = "|cff00ff00"..L["Can Recover"].."|r"
-		elseif (dead or ghost) and self.res[munit] == 2 then status = "|cff00ff00"..L["Resurrected"].."|r"
-		elseif (dead or ghost) and self.res[munit] == 3 then status = "|cffff8c00"..L["Resurrecting"].."|r"
+		elseif dead and self.ResurrectionInfo[munit] == 1 then status = "|cff00ff00"..L["Can Recover"].."|r"
+		elseif (dead or ghost) and self.ResurrectionInfo[munit] == 2 then status = "|cff00ff00"..L["Resurrected"].."|r"
+		elseif (dead or ghost) and self.ResurrectionInfo[munit] == 3 then status = "|cffff8c00"..L["Resurrecting"].."|r"
 		elseif ghost then status = "|cffff0000"..L["Released"].."|r"
 		elseif dead then status = "|cffff0000"..L["Dead"].."|r"
 		end
@@ -1013,7 +959,7 @@ function sRaidFrames:UpdateUnitHealth(munit)
 			self:SetStatus(munit, "Death")
 		else
 			self:UnsetStatus(munit, "Death")
-			self.res[munit] = nil
+			self.ResurrectionInfo[munit] = nil
 			local hp = UnitHealth(unit) or 0
 			local hpmax = UnitHealthMax(unit)
 			local hpp = (hpmax ~= 0) and ceil((hp / hpmax) * 100) or 0
@@ -1224,7 +1170,16 @@ function sRaidFrames:UpdateAuras(munit)
 			end
 		end
 		local raidtarget = GetRaidTargetIndex(unit);
-		local raidtargets = {"Raid Icon: Star", "Raid Icon: Circle", "Raid Icon: Diamond", "Raid Icon: Triangle", "Raid Icon: Moon", "Raid Icon: Square", "Raid Icon: Cross", "Raid Icon: Skull"};
+		local raidtargets = {
+			[1] = "RaidIcon_Star", 
+			[2] = "RaidIcon_Circle",
+			[3] = "RaidIcon_Diamond",
+			[4] = "RaidIcon_Triangle",
+			[5] = "RaidIcon_Moon",
+			[6] = "RaidIcon_Square",
+			[7] = "RaidIcon_Cross",
+			[8] = "RaidIcon_Skull"
+		};
 		if raidtarget then
 			for i=1, #raidtargets do
 				if i ~= raidtarget then
@@ -1243,7 +1198,13 @@ end
 
 function sRaidFrames:AddStatusMap(statuskey, priority, elements, text, color, disabled)
 	if self.opt.StatusMaps[statuskey] then return end
-	self.opt.StatusMaps[statuskey] = {["priority"] = priority, ["elements"] = {}, ["text"] = text, ["color"] = color, ["enabled"] = disabled ~= true}
+	self.opt.StatusMaps[statuskey] = {
+		["priority"] = priority,
+		["elements"] = {}, 
+		["text"] = text,
+		["color"] = color,
+		["enabled"] = disabled ~= true
+	}
 	for _, element in pairs(elements) do
 		self.opt.StatusMaps[statuskey].elements[element] = true
 	end
@@ -1297,7 +1258,10 @@ function sRaidFrames:UpdateStatusElements(unit, statuskey)
 end
 
 function sRaidFrames:RegisterStatusElement(element, name, func)
-	self.statusElements[element] = { ["func"] = func, ["name"] = name }
+	self.statusElements[element] = {
+		["func"] = func, 
+		["name"] = name 
+	}
 	self.validateStatusElements[element] = name
 end
 
