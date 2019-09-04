@@ -453,7 +453,8 @@ function sRaidFrames:OnEnable()
 --	self:RegisterEvent("PLAYER_TALENT_UPDATE", "InitRangeChecks")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "InitRangeChecks")
 
-	self:RegisterBucketEvent("RAID_ROSTER_UPDATE", 0.2, "UpdateRoster")
+	self:RegisterBucketEvent("GROUP_ROSTER_UPDATE", 0.2, "UpdateRoster")
+
 	Media.RegisterCallback(self, "LibSharedMedia_SetGlobal")
 
 	self:UpdateRoster()
@@ -656,6 +657,7 @@ function sRaidFrames:UpdateRoster()
 			sRaidFrames:EnableFrames()
 		end
 	end
+
 	if sRaidFrames.enabled then
 		if not inRaid then
 			sRaidFrames:DisableFrames()
@@ -667,6 +669,7 @@ function sRaidFrames:UpdateRoster()
 			sRaidFrames:DisableFrames()
 		end
 	end
+
 	sRaidFrames:ScanRoster()
 end
 

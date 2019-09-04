@@ -180,20 +180,6 @@ sRaidFrames.options = {
 					disabled = InCombatLockdown,
 					order = 10,
 				},
-				
-				frequentUpdates = {
-					disabled = sRaidFrames.isClassic,
-					name = L["Frequent Health Updates"],
-					type = "toggle",
-					desc = L["Accelerate updating of health bars using timed updates instead of relying on the events send by the game."],
-					get = function()
-						return sRaidFrames.opt.HealthFrequentUpdates
-					end,
-					set = function(info, s)
-						sRaidFrames.opt.HealthFrequentUpdates = s
-						sRaidFrames:ToggleFrequentUpdates()
-					end,
-				},
 			},
 		},
 		
