@@ -379,17 +379,6 @@ sRaidFrames.options = {
 					},
 					order = 400,
 				},
-				
-				readycheck = {
-					name = L["Display ready check"],
-					type = "toggle",
-					desc = L["Display readiness status for the raid"],
-					get = GetVar,
-					set = SetVar,
-					arg = "ReadyCheck",
-					order = 25,
-					width = "full",
-				},
 			},
 		},
 		
