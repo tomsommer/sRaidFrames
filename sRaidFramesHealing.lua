@@ -23,7 +23,7 @@ function sRaidFrames:GetHealFlag()
 	if self.opt.heals.hot then
 		flag = flag+HealComm.HOT_HEALS
 	end
-	if self.opt.heals.bomb then
+	if self.opt.heals.bomb and not sRaidFrames.isClassic then
 		flag = flag+HealComm.BOMB_HEALS
 	end
 	return flag
