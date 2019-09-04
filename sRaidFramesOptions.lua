@@ -255,6 +255,7 @@ sRaidFrames.options = {
 						sRaidFrames:UpdateAllUnits()
 					end,
 					order = 199,
+					hidden = function() return sRaidFrames.isClassic end,
 				},
 				vehiclestatus = {
 					name = L["Show Vehicle Name"],
@@ -268,6 +269,7 @@ sRaidFrames.options = {
 						sRaidFrames:UpdateAllUnits()
 					end,
 					order = 190,
+					hidden = function() return sRaidFrames.isClassic end,
 				},
 				heals = {
 					name = L["Heal tracking"],
@@ -306,6 +308,7 @@ sRaidFrames.options = {
 							get = function() return sRaidFrames.opt.heals.bomb end,
 							set = function(info, value) sRaidFrames.opt.heals.bomb = value; for i, k in pairs(sRaidFrames:GetAllUnits()) do sRaidFrames:UpdateHealsOnUnit(k) end end,
 							order = 5,
+							hidden = function() return sRaidFrames.isClassic end,
 						},
 					},
 					order = 350,
