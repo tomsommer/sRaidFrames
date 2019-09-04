@@ -92,7 +92,9 @@ local defaults = { profile = {
 	GroupSetups			= {},
 	Positions			= { ['*'] = {} },
 	StatusMaps			= {},
-	HideInArena			= true,
+	ShowInArena			= true,
+	ShowInParty			= true,
+	ShowInRaid			= true,
 	Show				= true,
 	BuffDisplay			= {default="own"},
 	minimapIcon 		= {},
@@ -446,6 +448,10 @@ function sRaidFrames:OnEnable()
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "InitRangeChecks")
 
 	self:RegisterBucketEvent("GROUP_ROSTER_UPDATE", 0.2, "UpdateRoster")
+	self:RegisterEvent("PARTY_MEMBER_ENABLE", "UpdateAllUnits")
+	self:RegisterEvent("PARTY_MEMBER_DISABLE", "UpdateAllUnits")
+	self:RegisterEvent("UNIT_CONNECTION", "UpdateAllUnits")
+	self:RegisterEvent("UNIT_NAME_UPDATE", "UpdateAllUnits")
 
 	Media.RegisterCallback(self, "LibSharedMedia_SetGlobal")
 
@@ -643,26 +649,23 @@ function sRaidFrames:UpdateRoster()
 	local inRaid = IsInRaid()
 	local inBG = select(2, IsInInstance()) == "pvp"
 	local inArena = select(2, IsInInstance()) == "arena"
+	local shouldEnable
 
-	if not sRaidFrames.enabled then
-		if inRaid and not (sRaidFrames.opt.HideInArena and inArena) and sRaidFrames.opt.Show then
-			sRaidFrames:EnableFrames()
-		end
+	if inArena and self.opt.ShowInArena then
+		shouldEnable = true
+	elseif inRaid and self.opt.ShowInRaid then
+		shouldEnable = true
+	elseif inGroup and self.opt.ShowInParty then
+		shouldEnable = true
 	end
 
-	if sRaidFrames.enabled then
-		if not inRaid then
-			sRaidFrames:DisableFrames()
-		end
-		if sRaidFrames.opt.HideInArena and inArena then
-			sRaidFrames:DisableFrames()
-		end
-		if not sRaidFrames.opt.Show then
-			sRaidFrames:DisableFrames()
-		end
+	if not self.enabled and shouldEnable then
+		self:EnableFrames()
+	elseif self.enabled and not shouldEnable then
+		self:DisableFrames()
 	end
-
-	sRaidFrames:ScanRoster()
+	
+	self:ScanRoster()
 end
 
 function sRaidFrames:UpdateAllUnits()
@@ -1659,8 +1662,6 @@ function sRaidFrames:SetGrowth()
 		groupframe.header:SetAttribute("yOffset", yMod * spacing)
 		groupframe.header:SetAttribute("xMod", xMod)
 		groupframe.header:SetAttribute("yMod", yMod)
-		
-
 	end
 end
 

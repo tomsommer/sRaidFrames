@@ -43,38 +43,6 @@ sRaidFrames.options = {
 			order = 2,
 			width = "half",
 		},
-
-		show = {
-			name = L["Show"],
-			type = "toggle",
-			desc = L["Show the raid frames"],
-			get = function()
-				return sRaidFrames.opt.Show;
-			end,
-			set = function(info, value)
-				sRaidFrames.opt.Show = value;
-				sRaidFrames:UpdateRoster();
-			end,
-			--hidden = function() return not sRaidFrames.enabled end,
-			disabled = InCombatLockdown,
-			order = 3,
-			width = "half",
-		},
-		
-		hidearena = {
-			name = L["Hide in arena"],
-			type = "toggle",
-			desc = L["Hide the raid frames when you are in an arena"],
-			get = function()
-				return sRaidFrames.opt.HideInArena
-			end,
-			set = function(info, value)
-				sRaidFrames.opt.HideInArena = value
-				sRaidFrames:UpdateRoster()
-			end,
-			disabled = function() return not sRaidFrames.opt.Show or InCombatLockdown() end,
-			order = 4,
-		},
 		minimapIcon = {
 			type = "toggle",
 			order = 5,
