@@ -560,8 +560,8 @@ do
 	local roster, oldroster = { n = 0 }, {}
 	function sRaidFrames:ScanRoster()
 		local numRaid = GetNumGroupMembers()
-		for id, name in pairs(roster) do
-			oldroster[id] = name
+		for unit, name in pairs(roster) do
+			oldroster[unit] = name
 		end
 		
 		for i = 1, numRaid do
@@ -576,17 +576,17 @@ do
 		
 		oldroster.n = nil
 		-- anything thats left in the oldroster now can go
-		for id, name in pairs(oldroster) do
-			oldroster[id] = nil
-			roster[id] = nil
-			self:Roster_UnitLeft(id)
+		for unit, name in pairs(oldroster) do
+			oldroster[unit] = nil
+			roster[unit] = nil
+			self:Roster_UnitLeft(unit)
 		end
 	end
 	
 	function sRaidFrames:GetUnitByName(unitname)
-		for id, name in pairs(roster) do
+		for unit, name in pairs(roster) do
 			if name == unitname then
-				return id
+				return unit
 			end
 		end
 	end
@@ -610,7 +610,7 @@ function sRaidFrames:UpdateRoster()
 	local inRaid = IsInRaid()
 	local inBG = select(2, IsInInstance()) == "pvp"
 	local inArena = select(2, IsInInstance()) == "arena"
-	local shouldEnable
+	local shouldEnable = false
 
 	if inArena then
 		shouldEnable = self.opt.ShowInArena
