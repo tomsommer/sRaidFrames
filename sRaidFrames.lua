@@ -592,6 +592,10 @@ do
 	end
 end
 
+function sRaidFrames:UnitByRaidId(id)
+	return ("raid%d"):format(id)
+end
+
 function sRaidFrames:Roster_UnitChanged(unitid)
 	ShouldUpdateFrameCache = true
 	
