@@ -124,18 +124,10 @@ function sRaidFrames:OnInitialize()
 	
 	-- Upgrade Config
 	local cv = self.db.profile.configVersion or 0
-	
-	-- Version 1: Numeric Buff Status Maps, remove the old ones.
-	if cv < 1 then
-		for k,v in pairs(self.db.profile.StatusMaps) do
-			if k:find("^Buff_") then
-				self.db.profile.StatusMaps[k] = nil
-			end
-		end
-	end
-	
+
+	-- DO STUFF HERE
+
 	self.db.profile.configVersion = sRaidFrames.CONFIG_VERSION
-	
 	self.opt = self.db.profile
 
 	-- Init variables
@@ -148,36 +140,6 @@ function sRaidFrames:OnInitialize()
 	self.statusElements = {}
 	self.validateStatusElements = {}
 	self.vehicleUpdate = {}
-
-	--Conversion to new checkbox buff filtering
-	if self.opt.BuffBlacklist then
-		for i, k in pairs(self.opt.BuffBlacklist) do
-			if k then
-				self.opt.BuffDisplayOptions[string.lower(i)] = 0;
-				self.opt.BuffBlacklist[i] = nil;
-			end
-		end
-		self.opt.BuffBlacklist = nil;
-	end
-	if type(self.opt.BuffDisplay) ~= "table" then
-		local buffdisplay = self.opt.BuffDisplay
-		self.opt.BuffDisplay = {default=self.opt.BuffDisplay}
-	end
-	if self.opt.CombatBuffBlacklist then
-		for i, k in pairs(self.opt.CombatBuffBlacklist) do
-			if k then
-				self.opt.BuffDisplayOptions[string.lower(i)] = 2;
-				self.opt.CombatBuffBlacklist[i] = nil;
-			end
-		end
-		self.opt.CombatBuffBlacklist = nil;
-	end
-	for i, k in pairs(self.opt.BuffFilter) do
-		if i ~= string.lower(i) then
-			self.opt.BuffFilter[string.lower(i)] = k;
-			self.opt.BuffFilter[i] = nil;
-		end
-	end
 
 	self.cooldownSpells = {}
 	-- self.cooldownSpells["WARLOCK"] = SpellCache[27239] -- Soulstone Resurrection
@@ -351,6 +313,7 @@ function sRaidFrames:OnInitialize()
 
 	self.master:SetHeight(200);
 	self.master:SetWidth(200);
+
 	createLDBLauncher()
 end
 
@@ -486,12 +449,17 @@ function sRaidFrames:EnableFrames()
 	self.auraBucket = self:RegisterBucketEvent("UNIT_AURA", 0.2)
 
 	self:RegisterEvent("PLAYER_TARGET_CHANGED", "UpdateTarget")
-	
+	self:RegisterEvent("RAID_TARGET_UPDATE", "UpdateRaidTargets")
+	self:RegisterEvent("READY_CHECK")
+	self:RegisterEvent("READY_CHECK_CONFIRM")
+	self:RegisterEvent("READY_CHECK_FINISHED")
+	self:RegisterEvent("PLAYER_REGEN_ENABLED")
+	self:RegisterEvent("PLAYER_REGEN_DISABLED")
+
 	if not self.isClassic then
 		self:RegisterEvent("UNIT_ENTERED_VEHICLE", "UpdateVehicle")
 		self:RegisterEvent("UNIT_EXITED_VEHICLE", "UpdateVehicle")
 	end
-	self:RegisterEvent("RAID_TARGET_UPDATE", "UpdateRaidTargets")
 
 	if HealComm and self.isClassic then
 		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealStarted", "HealComm_HealUpdated")
@@ -512,12 +480,6 @@ function sRaidFrames:EnableFrames()
 	if Banzai and self.isClassic then
 		Banzai:RegisterCallback(sRaidFrames.Banzai_Callback)
 	end
-	
-	self:RegisterEvent("READY_CHECK")
-	self:RegisterEvent("READY_CHECK_CONFIRM")
-	self:RegisterEvent("READY_CHECK_FINISHED")
-	self:RegisterEvent("PLAYER_REGEN_ENABLED")
-	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 
 	if self.isClassic then
 		self.master:SetScript("OnUpdate", function() sRaidFrames:FrequentHealthUpdate() end)
