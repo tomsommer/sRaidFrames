@@ -612,12 +612,12 @@ function sRaidFrames:UpdateRoster()
 	local inArena = select(2, IsInInstance()) == "arena"
 	local shouldEnable
 
-	if inArena and self.opt.ShowInArena then
-		shouldEnable = true
-	elseif inRaid and self.opt.ShowInRaid then
-		shouldEnable = true
-	elseif inGroup and self.opt.ShowInParty then
-		shouldEnable = true
+	if inArena then
+		shouldEnable = self.opt.ShowInArena
+	elseif inRaid  then
+		shouldEnable = self.opt.ShowInRaid
+	elseif inGroup then
+		shouldEnable = self.opt.ShowInParty
 	end
 
 	if not self.enabled and shouldEnable then
