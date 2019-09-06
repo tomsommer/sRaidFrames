@@ -1252,13 +1252,12 @@ function sRaidFrames:QueryTooltipDisplay(value)
 end
 
 function sRaidFrames:UnitTooltip(frame)
-	if frame.id then
-		local name, rank, subgroup, level, class, eclass, zone, _, _, role  = GetRaidRosterInfo(frame.id)
-	end 
-
+	local name, rank, subgroup, level, class, classFile, zone, online, isDead, role, isML
 	local unit = frame:GetAttribute("unit")
-	if not unit then return end
-	
+	if not unit then 
+		return 
+	end
+
 	GameTooltip:SetOwner(frame)
 	
 	if self.opt.UnitTooltipType == "blizz" then
@@ -1267,11 +1266,22 @@ function sRaidFrames:UnitTooltip(frame)
 			return
 	end
 
+	local raidid = frame.id or UnitInRaid(unit)
+	if raidid then
+		local name, rank, subgroup, level, class, classFile, zone, online, isDead, role, isML = GetRaidRosterInfo(raidid)
+	end
+
 	GameTooltip:ClearLines()
 
-	local class, classFile = UnitClass(unit)
-	local name = UnitName(unit)
-	local level  = UnitLevel(unit)
+	if not class or not classFile then
+		class, classFile = UnitClass(unit)
+	end
+	if not name then
+		name = UnitName(unit)
+	end
+	if not level then
+		level  = UnitLevel(unit)
+	end
 
 	GameTooltip:AddDoubleLine(name, level, RAID_CLASS_COLORS[classFile].r, RAID_CLASS_COLORS[classFile].g, RAID_CLASS_COLORS[classFile].b, 1, 1, 1)
 	
@@ -1296,7 +1306,7 @@ function sRaidFrames:UnitTooltip(frame)
 	end
 	
 	if zone or subgroup then
-		GameTooltip:AddDoubleLine(zone or UNKNOWN, L["Group %d"]:format(subgroup), 1, 1, 1, 1, 1, 1);
+		GameTooltip:AddDoubleLine(zone or UNKNOWN, L["Group %d"]:format(subgroup or UNKNOWN), 1, 1, 1, 1, 1, 1);
 	end
 
 	local cooldownSpell = self.cooldownSpells[eclass]
@@ -1773,10 +1783,10 @@ function sRaidFrames:RestorePosition()
 end
 
 function sRaidFrames:ResetPosition()
-	self:PositionLayout("ctra", 200, -200)
+	self:PositionLayout(200, -200)
 end
 
-function sRaidFrames:PositionLayout(xBuffer, yBuffer)
+function sRaidFrames:PositionLayout(xBuffer, yBuffer, layout)
 	local xMod, yMod, i = 0, 0, -1
 	local frameHeight = 80 + 3 + self.opt.Spacing
 	local framePadding = MEMBERS_PER_RAID_GROUP
@@ -1794,7 +1804,7 @@ function sRaidFrames:PositionLayout(xBuffer, yBuffer)
 			else
 				yMod = i * frame:GetWidth()
 			end
-		elseif layout == "ctra" then
+		else
 			if i ~= 0 and fmod(i, 2) == 0 then
 				yMod = yMod + frame:GetWidth()
 				xMod = 0

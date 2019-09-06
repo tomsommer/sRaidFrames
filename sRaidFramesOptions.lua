@@ -271,9 +271,12 @@ sRaidFrames.options = {
 							desc = L["Set a predefined position for the raid frames"],
 							get = function() return nil end,
 							set = function(info, layout)
-								sRaidFrames:PositionLayout(sRaidFrames.groupframes[1]:GetLeft(), sRaidFrames.groupframes[1]:GetTop()-UIParent:GetEffectiveScale()/sRaidFrames.master:GetEffectiveScale()*UIParent:GetTop())
+								sRaidFrames:PositionLayout(sRaidFrames.groupframes[1]:GetLeft(), sRaidFrames.groupframes[1]:GetTop()-UIParent:GetEffectiveScale()/sRaidFrames.master:GetEffectiveScale()*UIParent:GetTop(), layout)
 							end,
-							values = {["ctra"] = L["CT_RaidAssist"], ["horizontal"] = L["Horizontal"], ["vertical"] = L["Vertical"]},
+							values = {
+								["ctra"] = L["CT_RaidAssist"], 
+								["horizontal"] = L["Horizontal"], 
+								["vertical"] = L["Vertical"]},
 						},
 					},
 					disabled = InCombatLockdown,
