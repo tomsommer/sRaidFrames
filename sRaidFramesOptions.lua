@@ -371,50 +371,80 @@ sRaidFrames.options = {
 					disabled = function() return not sRaidFrames.opt.Locked or InCombatLockdown() end,
 					order = 1,
 				},
-				texture = {
-					name = L["Bar textures"],
-					type = "select",
-					desc = L["Set the texture used on health and mana bars"],
-					get = function()
-						return sRaidFrames.opt.Texture
-					end,
-					set = function(info, value)
-						sRaidFrames.opt.Texture = value
-					
-						local tex = Media:Fetch("statusbar", sRaidFrames.opt.Texture)
-						for _, f in pairs(sRaidFrames.frames) do
-							f.hpbar:SetStatusBarTexture(tex)
-							f.mpbar:SetStatusBarTexture(tex)
-						end
-					end,
-					values = AceGUIWidgetLSMlists.statusbar,
-					order = 5,
-					dialogControl = 'LSM30_Statusbar',
-				},
-				
-				bordertexture = {
-					name = L["Border texture"],
-					type = "select",
-					desc = L["Set the border texture"],
-					get = function()
-						return sRaidFrames.opt.BorderTexture
-					end,
-					set = function(info, value)
-						sRaidFrames.opt.BorderTexture = value
-					
-						local tex = Media:Fetch("border", sRaidFrames.opt.BorderTexture)
-						for _, frame in pairs(sRaidFrames.frames) do
-							local backdrop = frame:GetBackdrop()
-							backdrop.edgeFile = tex
-							frame:SetBackdrop(backdrop)
-						end
-						sRaidFrames:UpdateAllUnits()
-					end,
-					values = AceGUIWidgetLSMlists.border,
-					order = 6,
-					dialogControl = 'LSM30_Border',
-				},
+				textures = {
+					name = "Textures",
+					type = "group",
+					desc = "Set the diffirent colors of the raid frames",
+					dialogInline = true,
+					args = {
+						texture = {
+							name = L["Bar textures"],
+							type = "select",
+							desc = L["Set the texture used on health and mana bars"],
+							get = function()
+								return sRaidFrames.opt.Texture
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.Texture = value
+							
+								local tex = Media:Fetch("statusbar", sRaidFrames.opt.Texture)
+								for _, f in pairs(sRaidFrames.frames) do
+									f.hpbar:SetStatusBarTexture(tex)
+									f.mpbar:SetStatusBarTexture(tex)
+								end
+							end,
+							values = AceGUIWidgetLSMlists.statusbar,
+							order = 1,
+							dialogControl = 'LSM30_Statusbar',
+						},
+						
+						bordertexture = {
+							name = L["Border texture"],
+							type = "select",
+							desc = L["Set the border texture"],
+							get = function()
+								return sRaidFrames.opt.BorderTexture
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.BorderTexture = value
+							
+								local tex = Media:Fetch("border", sRaidFrames.opt.BorderTexture)
+								for _, frame in pairs(sRaidFrames.frames) do
+									local backdrop = frame:GetBackdrop()
+									backdrop.edgeFile = tex
+									frame:SetBackdrop(backdrop)
+								end
+								sRaidFrames:UpdateAllUnits()
+							end,
+							values = AceGUIWidgetLSMlists.border,
+							order = 2,
+							dialogControl = 'LSM30_Border',
+						},
 
+						backgroundtexture = {
+							name = "Background texture",
+							type = "select",
+							desc = "Set the background texture",
+							get = function()
+								return sRaidFrames.opt.BackgroundTexture
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.BackgroundTexture = value
+							
+								local tex = Media:Fetch("background", sRaidFrames.opt.BackgroundTexture)
+								for _, frame in pairs(sRaidFrames.frames) do
+									local backdrop = frame:GetBackdrop()
+									backdrop.bgFile = tex
+									frame:SetBackdrop(backdrop)
+								end
+								sRaidFrames:UpdateAllUnits()
+							end,
+							values = AceGUIWidgetLSMlists.background,
+							order = 3,
+							dialogControl = 'LSM30_Background',
+						},
+					},
+				},
 				scale = {
 					name = L["Scale"],
 					type = "range",
@@ -507,6 +537,18 @@ sRaidFrames.options = {
 					},
 					order = 401,
 				},
+				unittype = {
+					name = L["Unit tooltip type"],
+					type = "select",
+					desc = L["Determine the look of unit tooltips"],
+					get = GetVar,
+					set = SetVar,
+					arg = "UnitTooltipType",
+					values = {
+						["blizz"] = "Blizzard", 
+						["ctra"] = "CT_RaidAssist"
+					},
+				},
 				tooltips = {
 					name = L["Tooltip display"],
 					type = "group",
@@ -520,16 +562,11 @@ sRaidFrames.options = {
 							get = GetVar,
 							set = SetVar,
 							arg = "UnitTooltipMethod",
-							values = {["never"] = L["Never"], ["notincombat"] = L["Only when not in combat"], ["always"] = L["Always"]},
-						},
-						unittype = {
-							name = L["Unit tooltip type"],
-							type = "select",
-							desc = L["Determine the look of unit tooltips"],
-							get = GetVar,
-							set = SetVar,
-							arg = "UnitTooltipType",
-							values = {["blizz"] = "Blizzard", ["ctra"] = "CT_RaidAssist"},
+							values = {
+								["never"] = L["Never"], 
+								["notincombat"] = L["Only when not in combat"], 
+								["always"] = L["Always"]
+							},
 						},
 						buffs = {
 							name = L["Buff tooltips"],
@@ -538,7 +575,11 @@ sRaidFrames.options = {
 							get = GetVar,
 							set = SetVar,
 							arg = "BuffTooltipMethod",
-							values = {["never"] = L["Never"], ["notincombat"] = L["Only when not in combat"], ["always"] = L["Always"]},
+							values = {
+								["never"] = L["Never"], 
+								["notincombat"] = L["Only when not in combat"], 
+								["always"] = L["Always"]
+							},
 						},
 						debuffs = {
 							name = L["Debuff tooltips"],
@@ -547,7 +588,11 @@ sRaidFrames.options = {
 							get = GetVar,
 							set = SetVar,
 							arg = "DebuffTooltipMethod",
-							values = {["never"] = L["Never"], ["notincombat"] = L["Only when not in combat"], ["always"] = L["Always"]},
+							values = {
+								["never"] = L["Never"],
+								["notincombat"] = L["Only when not in combat"], 
+								["always"] = L["Always"]
+							},
 						},
 					},
 					order = 401,

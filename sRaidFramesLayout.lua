@@ -42,8 +42,13 @@ sRaidFrames:RegisterLayout("CTRA_WithBorders", {
 	Name = L["CT_RaidAssist"],
 	HasBorders = true,
 	StyleUnitFrame = function(f)
-		sRaidFrames:SetWHP(f, 90, 40)
-		sRaidFrames:SetWHP(f.title, 80, 16, "TOPLEFT", f, "TOPLEFT",  5, -4)
+		local width = 90
+		local height = 38
+		local border = 2
+		local padding = border + 1
+
+		sRaidFrames:SetWHP(f, width, height)
+		sRaidFrames:SetWHP(f.title, f:GetWidth() - padding, 16, "TOPLEFT", f, "TOPLEFT",  padding, -1 * padding)
 		sRaidFrames:SetWHP(f.aura1, 16, 16, "TOPRIGHT", f, "TOPRIGHT", -4, -4)
 		sRaidFrames:SetWHP(f.aura2, 16, 16, "RIGHT", f.aura1, "LEFT", 0, 0)
 		if sRaidFrames.opt.BuffType == "both" then
@@ -54,20 +59,20 @@ sRaidFrames:RegisterLayout("CTRA_WithBorders", {
 		sRaidFrames:SetWHP(f.buff2, 12, 12, "RIGHT", f.buff1, "LEFT", 0, 0)
 		sRaidFrames:SetWHP(f.buff3, 12, 12, "RIGHT", f.buff2, "LEFT", 0, 0)
 		sRaidFrames:SetWHP(f.buff4, 12, 12, "RIGHT", f.buff3, "LEFT", 0, 0)
-		sRaidFrames:SetWHP(f.hpbar, 80, 12, "TOPLEFT", f.title, "BOTTOMLEFT", 0, 0)
-		sRaidFrames:SetWHP(f.mpbar, 80, 4, "TOPLEFT", f.hpbar, "BOTTOMLEFT", 0, 0)
+		sRaidFrames:SetWHP(f.hpbar, f.title:GetWidth() - (border * 2), 12, "TOPLEFT", f.title, "BOTTOMLEFT", 0, 0)
+		sRaidFrames:SetWHP(f.mpbar, f.title:GetWidth() - (border * 2), 4, "TOPLEFT", f.hpbar, "BOTTOMLEFT", 0, 0)
 	
 		sRaidFrames:SetWHP(f.hpbar.text, f.hpbar:GetWidth(), f.hpbar:GetHeight(), "CENTER", f.hpbar, "CENTER", 0, 0)
 		sRaidFrames:SetWHP(f.statustext, f.mpbar:GetWidth(), f.mpbar:GetHeight(), "CENTER", f.mpbar, "CENTER", 0, 0)
 		
 		
-		f:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-									tile = true,
-									tileSize = 16,
-									edgeFile = Media:Fetch("border", sRaidFrames.opt.BorderTexture),
-									edgeSize = 16,
-									insets = { left = 5, right = 5, top = 5, bottom = 5 }
-								})
+		f:SetBackdrop({ bgFile = Media:Fetch("background", sRaidFrames.opt.BackgroundTexture),
+						tile = true,
+						tileSize = border * 4,
+						edgeFile = Media:Fetch("border", sRaidFrames.opt.BorderTexture),
+						edgeSize = border,
+						insets = { left = border, right = border, top = border, bottom = border }
+					})
 								
 		f:SetBackdropColor(sRaidFrames.opt.BackgroundColor.r, sRaidFrames.opt.BackgroundColor.g, sRaidFrames.opt.BackgroundColor.b, sRaidFrames.opt.BackgroundColor.a)
 		f:SetBackdropBorderColor(sRaidFrames.opt.BorderColor.r, sRaidFrames.opt.BorderColor.g, sRaidFrames.opt.BorderColor.b, sRaidFrames.opt.BorderColor.a)

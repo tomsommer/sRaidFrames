@@ -63,7 +63,7 @@ local defaults = { profile = {
 	Texture				= "Otravi",
 	BuffType			= "debuffs",
 	ShowOnlyDispellable	= 1,
-	BackgroundColor		= {r = 0.32, g = 0.50, b = 0.70, a = 0.90},
+	BackgroundColor		= {r = 0.25, g = 0.40, b = 0.60, a = 0.80},
 	classspelltable 	= {['*'] = {IsFiltered = false}},
 	BorderColor			= {r = 1, g = 1, b = 1, a = 1},
 	HealthTextColor		= {r = 1, g = 1, b = 1, a = 1},
@@ -76,6 +76,7 @@ local defaults = { profile = {
 	DebuffTooltipMethod = "always",
 	UnitTooltipType		= "ctra",
 	BorderTexture		= "Blizzard Tooltip",
+	BackgroundTexture	= "Char Frame",
 	BuffFilter			= {},
 	BuffDisplayOptions	= {},
 	DebuffFilter		= {},
@@ -1289,6 +1290,8 @@ function sRaidFrames:UnitTooltip(frame)
 			GameTooltip:Show()
 			return
 	end
+
+	GameTooltip:ClearLines()
 
 	local class, classFile = UnitClass(unit)
 	local name = UnitName(unit)
