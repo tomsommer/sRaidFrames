@@ -971,11 +971,11 @@ function sRaidFrames:UpdateAuras(munit)
 		self:UnsetStatus(munit, "Debuff_Disease")
 
 		local unit = self:GetVehicleUnit(munit)
-		for i = 1, 2 do
+		for i = 1, #f.debuffFrames do
 			f["aura".. i]:Hide()
 		end
 
-		for i = 1, 3 do
+		for i = 1, #f.buffFrames do
 			f["buff".. i]:Hide()
 		end
 
@@ -1011,7 +1011,10 @@ function sRaidFrames:UpdateAuras(munit)
 					debuffFrame.texture:SetTexture(debuffTexture)
 					debuffFrame:Show()
 				end
-				if DebuffSlots == 2 then debuffsFull = true end
+				
+				if DebuffSlots == #f.debuffFrames then 
+					break
+				end
 			end
 			i = i + 1
 		until not debuffName
@@ -1043,7 +1046,7 @@ function sRaidFrames:UpdateAuras(munit)
 			if not buffsFull and BuffType == "buffs" or (BuffType == "buffsifnotdebuffed" and DebuffSlots == 0) or BuffType == "both" then
 
 				local displaytype = BuffDisplayOptions[string.lower(name)]
-				if not buffsFull and ((displaytype == 3 or not displaytype) or (displaytype ==1 and self.InCombat) or (displaytype == 2 and not self.InCombat)) and ((isMine and (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay) == "own" and duration > 0) or (showOnlyCastable and duration > 0) or (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay)  == "all") and (not HasBuffFilter or (HasBuffFilter and BuffFilter[string.lower(name)])) then
+				if ((displaytype == 3 or not displaytype) or (displaytype ==1 and self.InCombat) or (displaytype == 2 and not self.InCombat)) and ((isMine and (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay) == "own" and duration > 0) or (showOnlyCastable and duration > 0) or (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay)  == "all") and (not HasBuffFilter or (HasBuffFilter and BuffFilter[string.lower(name)])) then
 						BuffSlots = BuffSlots + 1
 						local buffFrame = f["buff".. BuffSlots]
 						if not buffFrame then break end
@@ -1069,7 +1072,10 @@ function sRaidFrames:UpdateAuras(munit)
 							end
 						end
 						buffFrame:Show()
-						if BuffSlots == 3 then buffsFull = true end
+
+						if BuffSlots == #f.buffFrames then
+							break
+						end
 				end
 			end
 
