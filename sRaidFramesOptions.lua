@@ -372,7 +372,7 @@ sRaidFrames.options = {
 					order = 1,
 				},
 				textures = {
-					name = "Textures",
+					name = "Background/border",
 					type = "group",
 					desc = "Set the diffirent colors of the raid frames",
 					dialogInline = true,
