@@ -54,7 +54,7 @@ sRaidFrames.options = {
 		},
 		frames = {
 			type = "group",
-			name = L["Frame Behaviour"],
+			name = "Frames",
 			order = 200,
 			cmdInline = true,
 			args = {
@@ -147,6 +147,81 @@ sRaidFrames.options = {
 							dialogControl = 'LSM30_Background',
 						},
 					},
+				},
+				colors = {
+					name = L["Colors"],
+					type = "group",
+					desc = L["Set the diffirent colors of the raid frames"],
+					dialogInline = true,
+					args = {
+						background = {
+							type = "color",
+							name = L["Background color"],
+							desc = L["Change the background color"],
+							get = function()
+								local s = sRaidFrames.opt.BackgroundColor
+								return s.r, s.g, s.b, s.a
+							end,
+							set = function(info, r, g, b, a)
+								sRaidFrames.opt.BackgroundColor = {r = r, g = g, b = b, a = a}
+								sRaidFrames:UpdateAllUnits()
+							end,
+							hasAlpha = true,
+							order = 100,
+						},
+						border = {
+							type = "color",
+							name = L["Border color"],
+							desc = L["Change the border color"],
+							get = function()
+								local s = sRaidFrames.opt.BorderColor
+								return s.r, s.g, s.b, s.a
+							end,
+							set = function(info, r, g, b, a)
+								sRaidFrames.opt.BorderColor = {r = r, g = g, b = b, a = a}
+
+								for _, frame in pairs(sRaidFrames.frames) do
+									frame:SetBackdropBorderColor(r, g, b, a)
+								end
+							end,
+							hasAlpha = true,
+							disabled = function() return not sRaidFrames.opt.Border end,
+							order = 100,
+						},
+
+						healthtext = {
+							type = "color",
+							name = L["Health text color"],
+							desc = L["Change the color of the health text"],
+							get = function()
+								local s = sRaidFrames.opt.HealthTextColor
+								return s.r, s.g, s.b, s.a
+							end,
+							set = function(info, r, g, b, a)
+								sRaidFrames.opt.HealthTextColor = {r = r, g = g, b = b, a = a}
+
+								for _, frame in pairs(sRaidFrames.frames) do
+									frame.hpbar.text:SetTextColor(r, g, b, a)
+								end
+							end,
+							hasAlpha = false,
+							order = 100,
+						},
+						healthbar = {
+							type = "toggle",
+							name = L["Color health bar by class"],
+							desc = L["Color the health bar by class color"],
+							get = function()
+								return sRaidFrames.opt.HealthBarColorByClass
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.HealthBarColorByClass = value
+								sRaidFrames:UpdateAllUnits()
+							end,
+							order = 110,
+						},
+					},
+					order = 401,
 				},
 				scale = {
 					name = L["Scale"],
@@ -242,6 +317,19 @@ sRaidFrames.options = {
 					disabled = InCombatLockdown,
 					order = 10,
 				},
+
+				tooltiptype = {
+					name = "Tooltip type",
+					type = "select",
+					desc = L["Determine the look of unit tooltips"],
+					get = GetVar,
+					set = SetVar,
+					arg = "UnitTooltipType",
+					values = {
+						["blizz"] = "Game default", 
+						["ctra"] = "sRaidFrames",
+					},
+				},
 			},
 		},
 		
@@ -255,7 +343,7 @@ sRaidFrames.options = {
 		},
 		informational = {
 			type = "group",
-			name = L["Informational"],
+			name = "Indicators",
 			order = 300,
 			cmdInline = true,
 			args = {
@@ -301,7 +389,7 @@ sRaidFrames.options = {
 						[Enum.PowerType.Mana] = L["Mana"],
 						[Enum.PowerType.Rage] = L["Rage"],
 						[Enum.PowerType.Energy] = L["Energy"],
-						[Enum.PowerType.RunicPower] = L["Runic Power"],
+					--	[Enum.PowerType.RunicPower] = L["Runic Power"],
 					},
 					order = 200,
 				},
@@ -332,6 +420,54 @@ sRaidFrames.options = {
 					end,
 					order = 190,
 					hidden = function() return sRaidFrames.isClassic end,
+				},
+				tooltips = {
+					name = L["Tooltip display"],
+					type = "group",
+					desc = L["Determine when a tooltip is displayed"],
+					dialogInline = true,
+					args = {
+						units = {
+							name = L["Unit tooltips"],
+							type = "select",
+							desc = L["Determine when a tooltip is displayed"],
+							get = GetVar,
+							set = SetVar,
+							arg = "UnitTooltipMethod",
+							values = {
+								["never"] = L["Never"], 
+								["notincombat"] = L["Only when not in combat"], 
+								["always"] = L["Always"]
+							},
+						},
+						buffs = {
+							name = L["Buff tooltips"],
+							type = "select",
+							desc = L["Determine when a tooltip is displayed"],
+							get = GetVar,
+							set = SetVar,
+							arg = "BuffTooltipMethod",
+							values = {
+								["never"] = L["Never"], 
+								["notincombat"] = L["Only when not in combat"], 
+								["always"] = L["Always"]
+							},
+						},
+						debuffs = {
+							name = L["Debuff tooltips"],
+							type = "select",
+							desc = L["Determine when a tooltip is displayed"],
+							get = GetVar,
+							set = SetVar,
+							arg = "DebuffTooltipMethod",
+							values = {
+								["never"] = L["Never"],
+								["notincombat"] = L["Only when not in combat"], 
+								["always"] = L["Always"]
+							},
+						},
+					},
+					order = 401,
 				},
 				heals = {
 					name = L["Heal tracking"],
@@ -438,155 +574,10 @@ sRaidFrames.options = {
 							order = 2,
 						}
 					},
-					order = 400,
+					order = 500,
 				},
 			},
 		},
-		
-		appearance = {
-			type = "group",
-			name = L["Appearance"],
-			order = 400,
-			cmdInline = true,
-			args = {
-				colors = {
-					name = L["Colors"],
-					type = "group",
-					desc = L["Set the diffirent colors of the raid frames"],
-					dialogInline = true,
-					args = {
-						background = {
-							type = "color",
-							name = L["Background color"],
-							desc = L["Change the background color"],
-							get = function()
-								local s = sRaidFrames.opt.BackgroundColor
-								return s.r, s.g, s.b, s.a
-							end,
-							set = function(info, r, g, b, a)
-								sRaidFrames.opt.BackgroundColor = {r = r, g = g, b = b, a = a}
-								sRaidFrames:UpdateAllUnits()
-							end,
-							hasAlpha = true,
-							order = 100,
-						},
-						border = {
-							type = "color",
-							name = L["Border color"],
-							desc = L["Change the border color"],
-							get = function()
-								local s = sRaidFrames.opt.BorderColor
-								return s.r, s.g, s.b, s.a
-							end,
-							set = function(info, r, g, b, a)
-								sRaidFrames.opt.BorderColor = {r = r, g = g, b = b, a = a}
-
-								for _, frame in pairs(sRaidFrames.frames) do
-									frame:SetBackdropBorderColor(r, g, b, a)
-								end
-							end,
-							hasAlpha = true,
-							disabled = function() return not sRaidFrames.opt.Border end,
-							order = 100,
-						},
-
-						healthtext = {
-							type = "color",
-							name = L["Health text color"],
-							desc = L["Change the color of the health text"],
-							get = function()
-								local s = sRaidFrames.opt.HealthTextColor
-								return s.r, s.g, s.b, s.a
-							end,
-							set = function(info, r, g, b, a)
-								sRaidFrames.opt.HealthTextColor = {r = r, g = g, b = b, a = a}
-
-								for _, frame in pairs(sRaidFrames.frames) do
-									frame.hpbar.text:SetTextColor(r, g, b, a)
-								end
-							end,
-							hasAlpha = false,
-							order = 100,
-						},
-						healthbar = {
-							type = "toggle",
-							name = L["Color health bar by class"],
-							desc = L["Color the health bar by class color"],
-							get = function()
-								return sRaidFrames.opt.HealthBarColorByClass
-							end,
-							set = function(info, value)
-								sRaidFrames.opt.HealthBarColorByClass = value
-								sRaidFrames:UpdateAllUnits()
-							end,
-							order = 110,
-						},
-					},
-					order = 401,
-				},
-				unittype = {
-					name = L["Unit tooltip type"],
-					type = "select",
-					desc = L["Determine the look of unit tooltips"],
-					get = GetVar,
-					set = SetVar,
-					arg = "UnitTooltipType",
-					values = {
-						["blizz"] = "Blizzard", 
-						["ctra"] = "CT_RaidAssist"
-					},
-				},
-				tooltips = {
-					name = L["Tooltip display"],
-					type = "group",
-					desc = L["Determine when a tooltip is displayed"],
-					dialogInline = true,
-					args = {
-						units = {
-							name = L["Unit tooltips"],
-							type = "select",
-							desc = L["Determine when a tooltip is displayed"],
-							get = GetVar,
-							set = SetVar,
-							arg = "UnitTooltipMethod",
-							values = {
-								["never"] = L["Never"], 
-								["notincombat"] = L["Only when not in combat"], 
-								["always"] = L["Always"]
-							},
-						},
-						buffs = {
-							name = L["Buff tooltips"],
-							type = "select",
-							desc = L["Determine when a tooltip is displayed"],
-							get = GetVar,
-							set = SetVar,
-							arg = "BuffTooltipMethod",
-							values = {
-								["never"] = L["Never"], 
-								["notincombat"] = L["Only when not in combat"], 
-								["always"] = L["Always"]
-							},
-						},
-						debuffs = {
-							name = L["Debuff tooltips"],
-							type = "select",
-							desc = L["Determine when a tooltip is displayed"],
-							get = GetVar,
-							set = SetVar,
-							arg = "DebuffTooltipMethod",
-							values = {
-								["never"] = L["Never"],
-								["notincombat"] = L["Only when not in combat"], 
-								["always"] = L["Always"]
-							},
-						},
-					},
-					order = 401,
-				},
-			},
-		},
-		
 		buffsdebuffs = {
 			type = "group",
 			name = L["Buffs & Debuffs"],
@@ -1071,8 +1062,8 @@ function sRaidFrames:chatUpdateStatusElements()
 						get = function() return self.opt.StatusMaps[key].enabled ~= false end,
 					},
 					elements = {
-						name = L["GUI Elements"],
-						desc = L["Set which elements this status will use"],
+						name = "GUI Elements affected",
+						desc = "Set which elements this status will affect",
 						type = "multiselect",
 						values = sRaidFrames.validateStatusElements,
 						set = function(info, element, value) self.opt.StatusMaps[key].elements[element] = value end,
