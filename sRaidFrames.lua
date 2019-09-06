@@ -482,9 +482,8 @@ function sRaidFrames:EnableFrames()
 		Banzai:RegisterCallback(sRaidFrames.Banzai_Callback)
 	end
 
-	if self.isClassic then
-		self.master:SetScript("OnUpdate", function() sRaidFrames:FrequentHealthUpdate() end)
-	end
+
+	self.master:SetScript("OnUpdate", function() sRaidFrames:FrequentHealthUpdate() end)
 
 	self.rangeTimer = self:ScheduleRepeatingTimer("RangeCheck", self.opt.RangeFrequency)
 
@@ -855,19 +854,15 @@ end
 
 local hpcache = {}
 function sRaidFrames:FrequentHealthUpdate()
+	if not InCombatLockdown() then return end -- Don't need this when not in combat
 	for munit in pairs(self:GetAllUnits()) do
-		if not self:GetStatus(munit, "Death") then
-			local unit = self:GetVehicleUnit(munit)
-			local hp = UnitHealth(unit) or 0
-			local hpmax = UnitHealthMax(unit)
-			local hpp = (hpmax ~= 0) and ceil((hp / hpmax) * 100) or 0
-			
-			if hpcache[munit] ~= hp then
-				hpcache[munit] = hp
-				for _, f in pairs(self:FindUnitFrames(munit)) do
-					self:UpdateSingleUnitHealth(f, hp, hpmax, hpp)
-				end
-			end
+		local unit = self:GetVehicleUnit(munit)
+		local hp = UnitHealth(unit) or 0
+		local hpmax = UnitHealthMax(unit)
+		local hpp = (hpmax ~= 0) and ceil((hp / hpmax) * 100) or 0
+		
+		if hpcache[munit] ~= hp then
+			self:UpdateUnitHealth(munit)
 		end
 	end
 end
@@ -913,7 +908,7 @@ function sRaidFrames:UpdateUnitHealth(munit)
 		if not UnitIsConnected(munit) then status = "|cffff0000"..L["Offline"].."|r"
 		elseif dead and self.ResurrectionInfo[munit] == 1 then status = "|cff00ff00"..L["Can Recover"].."|r"
 		elseif (dead or ghost) and self.ResurrectionInfo[munit] == 2 then status = "|cff00ff00"..L["Resurrected"].."|r"
-		elseif (dead or ghost) and self.ResurrectionInfo[munit] == 3 then status = "|cffff8c00"..L["Resurrecting"].."|r"
+		elseif (dead or ghost) and (self.ResurrectionInfo[munit] == 3 or UnitHasIncomingResurrection(munit)) then status = "|cffff8c00"..L["Resurrecting"].."|r"
 		elseif ghost then status = "|cffff0000"..L["Released"].."|r"
 		elseif dead then status = "|cffff0000"..L["Dead"].."|r"
 		end

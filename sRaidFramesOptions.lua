@@ -39,7 +39,7 @@ sRaidFrames.options = {
 					end
 				end
 			end,
-			disabled = function() return not sRaidFrames.opt.Show or InCombatLockdown() end,
+			disabled = function() return InCombatLockdown() end,
 			order = 2,
 			width = "half",
 		},
