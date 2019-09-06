@@ -1591,6 +1591,7 @@ function sRaidFrames:SetGrowth()
 end
 
 function sRaidFrames:StartMovingAll(f, this)
+	if InCombatLockdown() then return end
 	this.multidrag = 1
 	local id = f:GetID()
 	local fg = self.groupframes[id]
@@ -1610,6 +1611,7 @@ function sRaidFrames:StartMovingAll(f, this)
 end
 
 function sRaidFrames:StopMovingOrSizingAll(this)
+	if InCombatLockdown() then return end
 	this.multidrag = nil
 	local id = this:GetID()
 	local fg = self.groupframes[id]
