@@ -52,12 +52,119 @@ sRaidFrames.options = {
 			set = function(info, value) sRaidFrames.db.profile.minimapIcon.hide = not value; LDBIcon[value and "Show" or "Hide"](LDBIcon, "sRaidFrames") end,
 			disabled = function() return not LDBIcon end,
 		},
-		behaviour = {
+		frames = {
 			type = "group",
 			name = L["Frame Behaviour"],
 			order = 200,
 			cmdInline = true,
 			args = {
+					titles = {
+					name = L["Show group titles"],
+					type = "toggle",
+					desc = L["Toggle display of titles above each group frame"],
+					get = function()
+						return sRaidFrames.opt.ShowGroupTitles
+					end,
+					set = function(info, value)
+						sRaidFrames.opt.ShowGroupTitles = value
+						for _,f in pairs(sRaidFrames.groupframes) do
+							sRaidFrames:UpdateTitleVisibility(f.header)
+						end
+					end,
+					disabled = function() return not sRaidFrames.opt.Locked or InCombatLockdown() end,
+					order = 1,
+				},
+				textures = {
+					name = "Background/border",
+					type = "group",
+					desc = "Set the diffirent colors of the raid frames",
+					dialogInline = true,
+					args = {
+						texture = {
+							name = L["Bar textures"],
+							type = "select",
+							desc = L["Set the texture used on health and mana bars"],
+							get = function()
+								return sRaidFrames.opt.Texture
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.Texture = value
+							
+								local tex = Media:Fetch("statusbar", sRaidFrames.opt.Texture)
+								for _, f in pairs(sRaidFrames.frames) do
+									f.hpbar:SetStatusBarTexture(tex)
+									f.mpbar:SetStatusBarTexture(tex)
+								end
+							end,
+							values = AceGUIWidgetLSMlists.statusbar,
+							order = 1,
+							dialogControl = 'LSM30_Statusbar',
+						},
+						
+						bordertexture = {
+							name = L["Border texture"],
+							type = "select",
+							desc = L["Set the border texture"],
+							get = function()
+								return sRaidFrames.opt.BorderTexture
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.BorderTexture = value
+							
+								local tex = Media:Fetch("border", sRaidFrames.opt.BorderTexture)
+								for _, frame in pairs(sRaidFrames.frames) do
+									local backdrop = frame:GetBackdrop()
+									backdrop.edgeFile = tex
+									frame:SetBackdrop(backdrop)
+								end
+								sRaidFrames:UpdateAllUnits()
+							end,
+							values = AceGUIWidgetLSMlists.border,
+							order = 2,
+							dialogControl = 'LSM30_Border',
+						},
+
+						backgroundtexture = {
+							name = "Background texture",
+							type = "select",
+							desc = "Set the background texture",
+							get = function()
+								return sRaidFrames.opt.BackgroundTexture
+							end,
+							set = function(info, value)
+								sRaidFrames.opt.BackgroundTexture = value
+							
+								local tex = Media:Fetch("background", sRaidFrames.opt.BackgroundTexture)
+								for _, frame in pairs(sRaidFrames.frames) do
+									local backdrop = frame:GetBackdrop()
+									backdrop.bgFile = tex
+									frame:SetBackdrop(backdrop)
+								end
+								sRaidFrames:UpdateAllUnits()
+							end,
+							values = AceGUIWidgetLSMlists.background,
+							order = 3,
+							dialogControl = 'LSM30_Background',
+						},
+					},
+				},
+				scale = {
+					name = L["Scale"],
+					type = "range",
+					desc = L["Set the scale of the raid frames"],
+					min = 0.1,
+					max = 3.0,
+					step = 0.05,
+					get = function()
+						return sRaidFrames.opt.Scale
+					end,
+					set = function(info, value)
+						sRaidFrames.opt.Scale = value
+						sRaidFrames.master:SetScale(value)
+					end,
+					disabled = InCombatLockdown,
+					order = 2,
+				},
 				invert = {
 					name = L["Invert health bars"],
 					type = "toggle",
@@ -89,7 +196,7 @@ sRaidFrames.options = {
 							desc = L["Set a predefined position for the raid frames"],
 							get = function() return nil end,
 							set = function(info, layout)
-								sRaidFrames:PositionLayout(layout, sRaidFrames.groupframes[1]:GetLeft(), sRaidFrames.groupframes[1]:GetTop()-UIParent:GetEffectiveScale()/sRaidFrames.master:GetEffectiveScale()*UIParent:GetTop())
+								sRaidFrames:PositionLayout(sRaidFrames.groupframes[1]:GetLeft(), sRaidFrames.groupframes[1]:GetTop()-UIParent:GetEffectiveScale()/sRaidFrames.master:GetEffectiveScale()*UIParent:GetTop())
 							end,
 							values = {["ctra"] = L["CT_RaidAssist"], ["horizontal"] = L["Horizontal"], ["vertical"] = L["Vertical"]},
 						},
@@ -97,24 +204,6 @@ sRaidFrames.options = {
 					disabled = InCombatLockdown,
 					order = 50,
 				},
-				layout = {
-					name = L["Layout"],
-					type = "select",
-					desc = L["Set the layout of the frames based on presets"],
-					get = function()
-						return sRaidFrames.opt.Layout
-					end,
-					set = function(info, value)
-						sRaidFrames.opt.Layout = value
-						sRaidFrames:SetLayout(value)
-						sRaidFrames:ApplyLayout()
-					end,
-					values = {},
-					order = 30,
-					width = "double",
-					disabled = InCombatLockdown,
-				},
-
 				growth = {
 					name = L["Growth"],
 					type = "select",
@@ -126,7 +215,12 @@ sRaidFrames.options = {
 						sRaidFrames.opt.GrowthDefault = value
 						sRaidFrames:SetGrowth()
 					end,
-					values = {["up"] = L["Up"], ["down"] = L["Down"], ["left"] = L["Left"], ["right"] = L["Right"]},
+					values = {
+						["up"] = L["Up"], 
+						["down"] = L["Down"], 
+						["left"] = L["Left"], 
+						["right"] = L["Right"]
+					},
 					disabled = InCombatLockdown,
 					order = 20,
 				},
@@ -135,8 +229,8 @@ sRaidFrames.options = {
 					name = L["Frame Spacing"],
 					type = "range",
 					desc = L["Set the spacing between each of the raid frames"],
-					min = -200,
-					max = 200,
+					min = -20,
+					max = 20,
 					step = 1,
 					get = function()
 						return sRaidFrames.opt.Spacing
@@ -355,113 +449,6 @@ sRaidFrames.options = {
 			order = 400,
 			cmdInline = true,
 			args = {
-				titles = {
-					name = L["Show group titles"],
-					type = "toggle",
-					desc = L["Toggle display of titles above each group frame"],
-					get = function()
-						return sRaidFrames.opt.ShowGroupTitles
-					end,
-					set = function(info, value)
-						sRaidFrames.opt.ShowGroupTitles = value
-						for _,f in pairs(sRaidFrames.groupframes) do
-							sRaidFrames:UpdateTitleVisibility(f.header)
-						end
-					end,
-					disabled = function() return not sRaidFrames.opt.Locked or InCombatLockdown() end,
-					order = 1,
-				},
-				textures = {
-					name = "Background/border",
-					type = "group",
-					desc = "Set the diffirent colors of the raid frames",
-					dialogInline = true,
-					args = {
-						texture = {
-							name = L["Bar textures"],
-							type = "select",
-							desc = L["Set the texture used on health and mana bars"],
-							get = function()
-								return sRaidFrames.opt.Texture
-							end,
-							set = function(info, value)
-								sRaidFrames.opt.Texture = value
-							
-								local tex = Media:Fetch("statusbar", sRaidFrames.opt.Texture)
-								for _, f in pairs(sRaidFrames.frames) do
-									f.hpbar:SetStatusBarTexture(tex)
-									f.mpbar:SetStatusBarTexture(tex)
-								end
-							end,
-							values = AceGUIWidgetLSMlists.statusbar,
-							order = 1,
-							dialogControl = 'LSM30_Statusbar',
-						},
-						
-						bordertexture = {
-							name = L["Border texture"],
-							type = "select",
-							desc = L["Set the border texture"],
-							get = function()
-								return sRaidFrames.opt.BorderTexture
-							end,
-							set = function(info, value)
-								sRaidFrames.opt.BorderTexture = value
-							
-								local tex = Media:Fetch("border", sRaidFrames.opt.BorderTexture)
-								for _, frame in pairs(sRaidFrames.frames) do
-									local backdrop = frame:GetBackdrop()
-									backdrop.edgeFile = tex
-									frame:SetBackdrop(backdrop)
-								end
-								sRaidFrames:UpdateAllUnits()
-							end,
-							values = AceGUIWidgetLSMlists.border,
-							order = 2,
-							dialogControl = 'LSM30_Border',
-						},
-
-						backgroundtexture = {
-							name = "Background texture",
-							type = "select",
-							desc = "Set the background texture",
-							get = function()
-								return sRaidFrames.opt.BackgroundTexture
-							end,
-							set = function(info, value)
-								sRaidFrames.opt.BackgroundTexture = value
-							
-								local tex = Media:Fetch("background", sRaidFrames.opt.BackgroundTexture)
-								for _, frame in pairs(sRaidFrames.frames) do
-									local backdrop = frame:GetBackdrop()
-									backdrop.bgFile = tex
-									frame:SetBackdrop(backdrop)
-								end
-								sRaidFrames:UpdateAllUnits()
-							end,
-							values = AceGUIWidgetLSMlists.background,
-							order = 3,
-							dialogControl = 'LSM30_Background',
-						},
-					},
-				},
-				scale = {
-					name = L["Scale"],
-					type = "range",
-					desc = L["Set the scale of the raid frames"],
-					min = 0.1,
-					max = 3.0,
-					step = 0.05,
-					get = function()
-						return sRaidFrames.opt.Scale
-					end,
-					set = function(info, value)
-						sRaidFrames.opt.Scale = value
-						sRaidFrames.master:SetScale(value)
-					end,
-					disabled = InCombatLockdown,
-					order = 2,
-				},
 				colors = {
 					name = L["Colors"],
 					type = "group",
