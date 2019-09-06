@@ -87,7 +87,6 @@ local defaults = { profile = {
 	RangeFrequency		= 0.2,
 	RangeAlpha 			= 0.5,
 	heals 				= {channel=true, direct=true, hot=false, bomb=true},
-	HighlightDebuffs 	= "onlyself",
 	GroupSetup			= L["By class"],
 	GroupSetups			= {},
 	Positions			= { ['*'] = {} },
@@ -981,11 +980,10 @@ function sRaidFrames:UpdateAuras(munit)
 
 		local BuffType = self.opt.BuffType
 		local DebuffSlots = 0
-		local HighLightRule = self.opt.HighlightDebuffs
 		local DebuffFilter = self.opt.DebuffFilter
 		local DebuffWhitelist = self.opt.DebuffWhitelist
 		local ShowOnlyDispellable = self.opt.ShowOnlyDispellable
-		local debuffsFull, typeFound = false, (HighLightRule == "never")
+		local typeFound = false
 	
 		
 		local i = 1
@@ -995,25 +993,21 @@ function sRaidFrames:UpdateAuras(munit)
 				break 
 			end
 
-			if debuffType and not typeFound and (HighLightRule ~= "onlyself" or self:CanDispell(debuffType)) then
-				typeFound = true
+			if debuffType then
 				self:SetStatus(munit, "Debuff_".. debuffType, debuffName)
 			end
 			
-			if not debuffsFull and BuffType == "debuffs" or BuffType == "buffsifnotdebuffed" or BuffType == "both" then
+			if BuffType == "debuffs" or BuffType == "buffsifnotdebuffed" or BuffType == "both" then
 				if not DebuffFilter[debuffName] and ((ShowOnlyDispellable and (self:CanDispell(debuffType) or DebuffWhitelist[debuffName])) or not ShowOnlyDispellable) then
 					DebuffSlots = DebuffSlots + 1
 					local debuffFrame = f["aura".. DebuffSlots]
-					if not debuffFrame then break end
-					debuffFrame.unitid = unit
-					debuffFrame.debuffid = i
-					debuffFrame.count:SetText(debuffApplications > 1 and debuffApplications or nil);
-					debuffFrame.texture:SetTexture(debuffTexture)
-					debuffFrame:Show()
-				end
-				
-				if DebuffSlots == #f.debuffFrames then 
-					break
+					if debuffFrame then
+						debuffFrame.unitid = unit
+						debuffFrame.debuffid = i
+						debuffFrame.count:SetText(debuffApplications > 1 and debuffApplications or nil);
+						debuffFrame.texture:SetTexture(debuffTexture)
+						debuffFrame:Show()
+					end
 				end
 			end
 			i = i + 1
@@ -1028,7 +1022,6 @@ function sRaidFrames:UpdateAuras(munit)
 		local BuffDisplayOptions = self.opt.BuffDisplayOptions
 		local BuffDisplay = self.opt.BuffDisplay.default
 		local showOnlyCastable = (BuffDisplay == "class") and "RAID" or nil
-		local buffsFull = false
 		
 		for name, id in pairs(self.statusSpellTable) do
 			self:UnsetStatus(munit, "Buff_" .. id)
@@ -1043,13 +1036,12 @@ function sRaidFrames:UpdateAuras(munit)
 
 			local isMine, buffId
 			isMine = (caster == "player")
-			if not buffsFull and BuffType == "buffs" or (BuffType == "buffsifnotdebuffed" and DebuffSlots == 0) or BuffType == "both" then
-
+			if BuffType == "buffs" or (BuffType == "buffsifnotdebuffed" and DebuffSlots == 0) or BuffType == "both" then
 				local displaytype = BuffDisplayOptions[string.lower(name)]
 				if ((displaytype == 3 or not displaytype) or (displaytype ==1 and self.InCombat) or (displaytype == 2 and not self.InCombat)) and ((isMine and (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay) == "own" and duration > 0) or (showOnlyCastable and duration > 0) or (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay)  == "all") and (not HasBuffFilter or (HasBuffFilter and BuffFilter[string.lower(name)])) then
-						BuffSlots = BuffSlots + 1
-						local buffFrame = f["buff".. BuffSlots]
-						if not buffFrame then break end
+					BuffSlots = BuffSlots + 1
+					local buffFrame = f["buff".. BuffSlots]
+					if buffFrame then
 						buffFrame.buffid = i
 						buffFrame.unitid = unit
 						buffFrame.showCastable = showOnlyCastable
@@ -1072,10 +1064,7 @@ function sRaidFrames:UpdateAuras(munit)
 							end
 						end
 						buffFrame:Show()
-
-						if BuffSlots == #f.buffFrames then
-							break
-						end
+					end
 				end
 			end
 
@@ -1087,7 +1076,6 @@ function sRaidFrames:UpdateAuras(munit)
 					end
 				end
 			end
-			
 			i = i + 1
 		until not name
 
@@ -1483,9 +1471,9 @@ function sRaidFrames:CreateUnitFrame(...)
 	f:ClearAllPoints()
 	self:SetWHP(f, 80, 34)
 	self:SetWHP(f.title, f:GetWidth() - 6, 13, "TOPLEFT", f, "TOPLEFT",  3, -3)
-	self:SetWHP(f.aura1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -1, -1)
+	self:SetWHP(f.aura1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", 3, -3)
 	self:SetWHP(f.aura2, 13, 13, "RIGHT", f.aura1, "LEFT", 0, 0)
-	self:SetWHP(f.buff1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -1, -1)
+	self:SetWHP(f.buff1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -3, -3)
 	self:SetWHP(f.buff2, 13, 13, "RIGHT", f.buff1, "LEFT", 0, 0)
 	self:SetWHP(f.buff3, 13, 13, "RIGHT", f.buff2, "LEFT", 0, 0)
 	self:SetWHP(f.hpbar, f.title:GetWidth(), 12, "TOPLEFT", f.title, "BOTTOMLEFT", 0, 0)

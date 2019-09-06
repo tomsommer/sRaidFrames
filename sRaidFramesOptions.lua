@@ -693,6 +693,7 @@ sRaidFrames.options = {
 							type = "group",
 							desc = L["Display a countdown on debuffs"],
 							dialogInline = true,
+							hidden = true,
 							name = L["Debuff timer"],
 							args={
 								enable = {
@@ -732,21 +733,6 @@ sRaidFrames.options = {
 								sRaidFrames:UpdateAllUnits()
 							end,
 							disabled = function() return (sRaidFrames.opt.BuffType == "buffs") end,
-						},
-
-						highlight = {
-							order = 2,
-							name = L["Highlight debuffed units"],
-							type = "select",
-							desc = L["Highlight units afflicted by a certain debuff type"],
-							get = function()
-								return sRaidFrames.opt.HighlightDebuffs
-							end,
-							set = function(info, value)
-								sRaidFrames.opt.HighlightDebuffs = value
-								sRaidFrames:UpdateAllUnits()
-							end,
-							values = {["never"] = L["Never"], ["all"] = L["All dispellable debuffs"], ["onlyself"] = L["Debuffs dispellable by me"]},
 						},
 					},
 					order = 501,
@@ -925,6 +911,7 @@ sRaidFrames.options = {
 							type = "group",
 							desc = L["Display a countdown on buffs"],
 							order = 5,
+							hidden = true,
 							dialogInline = true,
 							args = {
 								enable = {
