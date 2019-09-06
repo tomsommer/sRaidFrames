@@ -988,30 +988,30 @@ function sRaidFrames:UpdateAuras(munit)
 		
 		local i = 1
 		repeat
-			local debuffName, _, debuffTexture, debuffApplications, debuffType, duration, expirationTime = UnitDebuff(unit, i)
-			if not debufName then 
+			local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitDebuff(unit, i)
+			if not name then 
 				break 
 			end
 
 			if debuffType then
-				self:SetStatus(munit, "Debuff_".. debuffType, debuffName)
+				self:SetStatus(munit, "Debuff_".. debuffType, name)
 			end
 			
 			if BuffType == "debuffs" or BuffType == "buffsifnotdebuffed" or BuffType == "both" then
-				if not DebuffFilter[debuffName] and ((ShowOnlyDispellable and (self:CanDispell(debuffType) or DebuffWhitelist[debuffName])) or not ShowOnlyDispellable) then
+				if not DebuffFilter[name] and ((ShowOnlyDispellable and (self:CanDispell(debuffType) or DebuffWhitelist[name])) or not ShowOnlyDispellable) then
 					DebuffSlots = DebuffSlots + 1
 					local debuffFrame = f["aura".. DebuffSlots]
 					if debuffFrame then
 						debuffFrame.unitid = unit
 						debuffFrame.debuffid = i
-						debuffFrame.count:SetText(debuffApplications > 1 and debuffApplications or nil);
-						debuffFrame.texture:SetTexture(debuffTexture)
+						debuffFrame.count:SetText(count > 1 and count or nil);
+						debuffFrame.texture:SetTexture(icon)
 						debuffFrame:Show()
 					end
 				end
 			end
 			i = i + 1
-		until not debuffName
+		until not name
 
 
 		local BuffSlots = 0
@@ -1029,7 +1029,7 @@ function sRaidFrames:UpdateAuras(munit)
 		
 		local i = 1
 		repeat
-			local name, icon, count, debuffType, duration, expirationTime, caster, isStealable = UnitBuff(unit, i, showOnlyCastable)
+			local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitBuff(unit, i, showOnlyCastable)
 			if not name then
 				break
 			end
@@ -1471,7 +1471,7 @@ function sRaidFrames:CreateUnitFrame(...)
 	f:ClearAllPoints()
 	self:SetWHP(f, 80, 34)
 	self:SetWHP(f.title, f:GetWidth() - 6, 13, "TOPLEFT", f, "TOPLEFT",  3, -3)
-	self:SetWHP(f.aura1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", 3, -3)
+	self:SetWHP(f.aura1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -3, -3)
 	self:SetWHP(f.aura2, 13, 13, "RIGHT", f.aura1, "LEFT", 0, 0)
 	self:SetWHP(f.buff1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -3, -3)
 	self:SetWHP(f.buff2, 13, 13, "RIGHT", f.buff1, "LEFT", 0, 0)
