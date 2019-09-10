@@ -24,7 +24,7 @@ local createLDBLauncher
 
 local AE2 = AceLibrary and AceLibrary:HasInstance("AceEvent-2.0") and AceLibrary("AceEvent-2.0")
 
-local EventsHealth = {"UNIT_HEALTH", "UNIT_MAXHEALTH"}
+local EventsHealth = {"UNIT_HEALTH", "UNIT_MAXHEALTH", "INCOMING_RESURRECT_CHANGED"}
 local EventsPower = {"UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER"}
 
 Media:Register("statusbar", "Otravi", "Interface\\AddOns\\sRaidFrames\\textures\\otravi")
