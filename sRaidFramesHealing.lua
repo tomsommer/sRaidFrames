@@ -7,7 +7,7 @@ local sRaidFrames = sRaidFrames
 
 function sRaidFrames:GetUnitByGUID(guid)
 	if GUIDmap[guid] then return GUIDmap[guid] end
-	for i=1, GetNumRaidMembers() do
+	for i=1, GetNumGroupMembers() do
 		if UnitGUID("raid"..i) == guid then return "raid"..i end
 	end
 end
@@ -41,7 +41,6 @@ function sRaidFrames:UpdateHealsOnUnit(unit)
 end
 
 function sRaidFrames:HealComm_HealStarted(event, casterGUID, spellID, healType, endTime, ...)
-	if not self.opt.HighlightHeals then return end
 	for i=1, select('#', ...) do
 		local targetUnit=self:GetUnitByGUID(select(i, ...))
 		if targetUnit then
@@ -51,7 +50,6 @@ function sRaidFrames:HealComm_HealStarted(event, casterGUID, spellID, healType, 
 end
 
 function sRaidFrames:HealComm_HealUpdated(event, casterGUID, spellID, healType, endTime, ...)
-	if not self.opt.HighlightHeals then return end
 	for i=1, select('#', ...) do
 		local targetUnit=self:GetUnitByGUID(select(i, ...))
 		if targetUnit then
@@ -61,7 +59,6 @@ function sRaidFrames:HealComm_HealUpdated(event, casterGUID, spellID, healType, 
 end
 
 function sRaidFrames:HealComm_ModifierChanged(event, guid)
-	if not self.opt.HighlightHeals then return end
 	local targetUnit = self:GetUnitByGUID(guid)
 	if targetUnit then
 		self:UpdateHealsOnUnit(targetUnit)
