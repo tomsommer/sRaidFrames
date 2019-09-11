@@ -22,8 +22,6 @@ local HealComm = LibStub("LibClassicHealComm-1.0", true)
 -- local Banzai = LibStub("LibBanzai-2.0", true)
 local createLDBLauncher
 
-local AE2 = AceLibrary and AceLibrary:HasInstance("AceEvent-2.0") and AceLibrary("AceEvent-2.0")
-
 local EventsHealth = {"UNIT_HEALTH_FREQUENT", "UNIT_MAXHEALTH", "INCOMING_RESURRECT_CHANGED"}
 local EventsPower = {"UNIT_POWER_FREQUENT", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_POWER_UPDATE"}
 
