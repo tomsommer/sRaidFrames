@@ -7,6 +7,7 @@ ignore:
   - README.md
 
 externals:
+   libs/LibStub: svn://svn.wowace.com/wow/libstub/mainline/tags/1.0
    libs/AceAddon-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceAddon-3.0
    libs/AceBucket-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceBucket-3.0
    libs/AceComm-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceComm-3.0
@@ -20,7 +21,8 @@ externals:
    libs/AceTimer-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceTimer-3.0
 
    libs/CallbackHandler-1.0: https://repos.wowace.com/wow/ace3/trunk/CallbackHandler-1.0
-   libs/LibStub: svn://svn.wowace.com/wow/libstub/mainline/tags/1.0
+
    libs/LibSharedMedia-3.0: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
+   libs/AceGUI-3.0-SharedMediaWidgets: https://repos.wowace.com/wow/ace-gui-3-0-shared-media-widgets/trunk/AceGUI-3.0-SharedMediaWidgets
    libs/LibResInfo-1.0: git://github.com/phanx-wow/LibResInfo.git
    libs/LibClassicHealComm-1.0: https://github.com/Aviana/LibClassicHealComm-1.0.git
