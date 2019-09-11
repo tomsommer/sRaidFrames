@@ -13,13 +13,13 @@ local GetRaidTargetIndex = GetRaidTargetIndex
 local PowerBarColor, RAID_CLASS_COLORS = PowerBarColor, RAID_CLASS_COLORS
 
 local L = LibStub("AceLocale-3.0"):GetLocale("sRaidFrames")
-local LibGroupTalents = LibStub:GetLibrary("LibGroupTalents-1.0", true)
-local HealComm = LibStub("LibClassicHealComm-1.0", true)
-local ResComm = LibStub("LibResComm-1.0", true)
 local Media = LibStub("LibSharedMedia-3.0")
--- local Banzai = LibStub("LibBanzai-2.0", true)
 local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
+-- local LibGroupTalents = LibStub:GetLibrary("LibGroupTalents-1.0", true)
+local HealComm = LibStub("LibClassicHealComm-1.0", true)
+-- local ResComm = LibStub("LibResComm-1.0", true)
+-- local Banzai = LibStub("LibBanzai-2.0", true)
 local createLDBLauncher
 
 local AE2 = AceLibrary and AceLibrary:HasInstance("AceEvent-2.0") and AceLibrary("AceEvent-2.0")
