@@ -271,7 +271,7 @@ sRaidFrames.options = {
 							desc = L["Set a predefined position for the raid frames"],
 							get = function() return nil end,
 							set = function(info, layout)
-								sRaidFrames:PositionLayout(sRaidFrames.groupframes[1]:GetLeft(), sRaidFrames.groupframes[1]:GetTop()-UIParent:GetEffectiveScale()/sRaidFrames.master:GetEffectiveScale()*UIParent:GetTop(), layout)
+								sRaidFrames:PositionLayout(200, -200, layout)
 							end,
 							values = {
 								["ctra"] = L["CT_RaidAssist"], 
