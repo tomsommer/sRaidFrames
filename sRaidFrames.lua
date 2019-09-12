@@ -238,13 +238,13 @@ function sRaidFrames:OnInitialize()
 		-- Invisibility
 		self:AddStatusMap("Buff_66", 51, {"statusbar"}, SpellCache[66], {r=0,g=1,b=0,a=1})
 		-- Evasion
-		self:AddStatusMap("Buff_38541", 50, {"statusbar"}, SpellCache[38541], {r=1,g=1,b=0,a=1})
+	--	self:AddStatusMap("Buff_38541", 50, {"statusbar"}, SpellCache[38541], {r=1,g=1,b=0,a=1})
 		-- Stealth
 		self:AddStatusMap("Buff_1787", 50, {"statusbar"}, L["Stealthed"], {r=1,g=1,b=1,a=1})
 		-- Innervate
 		self:AddStatusMap("Buff_29166", 51, {"statusbar"}, L["Innervating"], {r=0,g=1,b=0,a=1})
 		-- Ice Block
-		self:AddStatusMap("Buff_45438", 50, {"statusbar"}, SpellCache[45438], {r=1,g=1,b=1,a=1})
+		-- self:AddStatusMap("Buff_45438", 50, {"statusbar"}, SpellCache[45438], {r=1,g=1,b=1,a=1})
 		-- Divine Protection
 		self:AddStatusMap("Buff_498", 53, {"statusbar"}, SpellCache[498], {r=1,g=1,b=1,a=1})
 		-- Hand of Protection
@@ -254,7 +254,7 @@ function sRaidFrames:OnInitialize()
 		-- Feign Death
 		self:AddStatusMap("Buff_5384", 50, {"statusbar"}, SpellCache[5384], {r=0,g=1,b=0,a=1})
 		-- Cloak of Shadows
-		self:AddStatusMap("Buff_39666", 50, {"statusbar"}, SpellCache[39666], {r=1,g=1,b=1,a=1})
+		-- self:AddStatusMap("Buff_39666", 50, {"statusbar"}, SpellCache[39666], {r=1,g=1,b=1,a=1})
 		-- Divine Shield
 		self:AddStatusMap("Buff_642", 50, {"statusbar"}, SpellCache[642], {r=1,g=1,b=1,a=1})
 		-- Fear Ward
