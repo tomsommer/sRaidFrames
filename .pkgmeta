@@ -26,6 +26,5 @@ externals:
 
    libs/LibSharedMedia-3.0: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
    libs/AceGUI-3.0-SharedMediaWidgets: https://repos.wowace.com/wow/ace-gui-3-0-shared-media-widgets/trunk/AceGUI-3.0-SharedMediaWidgets
-   libs/AceGUI-3.0-SpellEditBox: https://repos.wowace.com/wow/ace-gui-3-0-spell-editbox ace-gui-3-0-spell-editbox/trunk/AceGUI-3.0-SpellEditBox
    libs/LibResInfo-1.0: git://github.com/phanx-wow/LibResInfo.git
    libs/LibClassicHealComm-1.0: https://github.com/Aviana/LibClassicHealComm-1.0.git
