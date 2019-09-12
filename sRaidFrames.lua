@@ -58,7 +58,7 @@ local defaults = { profile = {
 	Invert 				= false,
 	Scale				= 1,
 	Border				= true,
-	Texture				= "Otravi",
+	Texture				= "Smooth",
 	BuffType			= "debuffs",
 	ShowOnlyDispellable	= 1,
 	BackgroundColor		= {r = 0.25, g = 0.40, b = 0.60, a = 0.80},
