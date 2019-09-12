@@ -141,7 +141,6 @@ function sRaidFrames:chatUpdateFilterMenu()
 	local i = 0
 	for name, _ in pairs(self:GetAllGroupFilters()) do
 		i = i + 1
-		if not sRaidFrames.opt.Growth[name] then sRaidFrames.opt.Growth[name] = {}; end
 		self.options.args.sets.args["set".. i] = {
 			type = 'group',
 			name = L["Set: "] .. name .. ((name == self.opt.GroupSetup) and L[" |cff00ff00[Active]|r "] or ""),
@@ -220,20 +219,6 @@ function sRaidFrames:chatUpdateFilterMenu()
 					data.caption = value
 					self:UpdateGroupFilter(name, id, data)
 				end
-			}
-			self.options.args.sets.args["set".. i].args["frame".. id].args.growth = {
-				type = 'select',
-				name = L["Growth"],
-				desc = L["Set the growth of this group"],
-				get = function()
-					return sRaidFrames.opt.Growth[name][id] or "default"
-				end,
-				set = function(info, value)
-					sRaidFrames.opt.Growth[name][id] = value
-					sRaidFrames:SetGrowth()
-				end,
-				values = {["default"] = L["Default"], ["up"] = L["Up"], ["down"] = L["Down"], ["left"] = L["Left"], ["right"] = L["Right"]},
-				disabled = InCombatLockdown,
 			}
 			self.options.args.sets.args["set".. i].args["frame".. id].args.namelist = {
 				type = 'input',
