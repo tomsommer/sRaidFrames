@@ -40,7 +40,6 @@ libs\AceConfig-3.0\AceConfig-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 
 libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
-libs\AceGUI-3.0-SpellEditBox\AceGUI-3.0-Spell-EditBox.xml
 
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 #@non-retail@
