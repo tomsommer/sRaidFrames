@@ -74,7 +74,7 @@ local defaults = { profile = {
 	DebuffTooltipMethod = "always",
 	UnitTooltipType		= "ctra",
 	BorderTexture		= "Blizzard Tooltip",
-	BackgroundTexture	= "Char Frame",
+	BackgroundTexture	= "Chat Frame",
 	BuffFilter			= {},
 	BuffDisplayOptions	= {},
 	DebuffFilter		= {},
