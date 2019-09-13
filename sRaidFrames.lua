@@ -84,7 +84,6 @@ local defaults = { profile = {
 	RangeLimit			= 38,
 	RangeFrequency		= 0.2,
 	RangeAlpha 			= 0.5,
-	heals 				= {channel=true, direct=true, hot=false, bomb=true},
 	GroupSetup			= L["By class"],
 	GroupSetups			= {},
 	Positions			= { ['*'] = {} },
@@ -463,7 +462,7 @@ function sRaidFrames:EnableFrames()
 	if HealComm and self.isClassic then
 		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealStarted", "HealComm_HealUpdated")
 		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealUpdated")
-		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealStopped", "HealComm_HealUpdated")
+		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealStopped")
 		HealComm.RegisterCallback(sRaidFrames, "HealComm_HealDelayed", "HealComm_HealUpdated")
 		HealComm.RegisterCallback(sRaidFrames, "HealComm_ModifierChanged")
 	end

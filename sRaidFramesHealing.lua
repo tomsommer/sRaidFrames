@@ -5,33 +5,24 @@ local GUIDmap = HealComm:GetGUIDUnitMapTable()
 local sRaidFrames = sRaidFrames
 
 function sRaidFrames:GetUnitByGUID(guid)
-	if GUIDmap[guid] then return GUIDmap[guid] end
+	if GUIDmap[guid] then 
+		return GUIDmap[guid] 
+	end
+	for unit in pairs(self:GetAllUnits()) do
+		if UnitGUID(unit) == guid then
+			return unit
+		end 
+	end
 	for i=1, GetNumGroupMembers() do
-		if UnitGUID("raid"..i) == guid then return "raid"..i end
+		if UnitGUID("raid"..i) == guid then 
+			return "raid"..i 
+		end
 	end
-end
-
-function sRaidFrames:GetHealFlag()
-	local flag = 0
-	if self.opt.heals.direct and HealComm.DIRECT_HEALS then
-		flag = flag+HealComm.DIRECT_HEALS
-	end
-	if self.opt.heals.channel and HealComm.CHANNEL_HEALS then
-		flag = flag+HealComm.CHANNEL_HEALS
-	end
-	if self.opt.heals.hot and HealComm.HOT_HEALS then
-		flag = flag+HealComm.HOT_HEALS
-	end
-	if self.opt.heals.bomb and HealComm.BOMB_HEALS then
-		flag = flag+HealComm.BOMB_HEALS
-	end
-	return flag
 end
 
 function sRaidFrames:UpdateHealsOnUnit(unit)
-	local incomingHeals = HealComm:GetHealAmount(UnitGUID(unit), self:GetHealFlag()) or 0
-
-	if incomingHeals > 0 then
+	local incomingHeals = HealComm:GetHealAmount(UnitGUID(unit), HealComm.CASTED_HEALS) or 0
+	if incomingHeals and incomingHeals > 0 then
 		incomingHeals = incomingHeals * HealComm:GetHealModifier(UnitGUID(unit))
 		self:SetStatus(unit, "Heal", ("+%d"):format(incomingHeals), nil, true)
 	else
@@ -40,6 +31,15 @@ function sRaidFrames:UpdateHealsOnUnit(unit)
 end
 
 function sRaidFrames:HealComm_HealStarted(event, casterGUID, spellID, healType, endTime, ...)
+	for i=1, select('#', ...) do
+		local targetUnit = self:GetUnitByGUID(select(i, ...))
+		if targetUnit then
+			self:UpdateHealsOnUnit(targetUnit)
+		end
+	end
+end
+
+function sRaidFrames:HealComm_HealStopped(event, casterGUID, spellID, healType, interrupted, ...)
 	for i=1, select('#', ...) do
 		local targetUnit=self:GetUnitByGUID(select(i, ...))
 		if targetUnit then
