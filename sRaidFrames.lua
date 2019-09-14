@@ -437,6 +437,11 @@ function sRaidFrames:UpdateRaidTargets()
 end
 
 function sRaidFrames:EnableFrames()
+	if InCombatLockdown() then
+		self:ScheduleLeaveCombatAction("EnableFrames")
+		return
+	end
+
 	self.enabled = true
 	self.statusstate = {}
 
@@ -490,7 +495,15 @@ function sRaidFrames:EnableFrames()
 end
 
 function sRaidFrames:DisableFrames()
-	if not self.enabled then return end
+	if not self.enabled then
+		return 
+	end
+	
+	if InCombatLockdown() then
+		self:ScheduleLeaveCombatAction("DisableFrames")
+		return
+	end
+
 	self.statusstate = {}
 	self.FramesByUnit = {}
 
