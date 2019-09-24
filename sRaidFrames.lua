@@ -1401,11 +1401,7 @@ function sRaidFrames:CreateUnitFrame(...)
 	local f = select("#", ...) > 1 and CreateFrame(...) or select(1, ...)
 	--f:EnableMouse(true)
 	f:RegisterForClicks("AnyUp")
-	
-	f:SetAttribute("type1", "target")
-	f:SetAttribute("*type1", "target")
-	
-	f:SetAttribute("toggleForVehicle", true)
+
 	--f:SetAttribute("allowVehicleTarget", true)
 
 	f:SetScript("OnEnter", UnitFrame_OnEnter)
@@ -1642,14 +1638,20 @@ function sRaidFrames:StopMovingOrSizingAll(this)
 end
 
 local function sRaidFrames_OnGroupFrameEvent(frame, event)
-	if event == "PARTY_MEMBERS_CHANGED" and frame:IsVisible() then
+	if event == "GROUP_ROSTER_UPDATE" and frame:IsVisible() then
   		sRaidFrames:ScheduleLeaveCombatAction("UpdateTitleVisibility", frame)
 	end
 end
 
 local sRaidFrames_SecureInitUnitFrame = [[
 	local header = self:GetParent()
+	self:SetAttribute("toggleForVehicle", true)
+	self:SetAttribute("type1", "target")
+	self:SetAttribute("*type1", "target")
+
+
 	self:SetAttribute("isHeaderDriven", true)
+
 	header:CallMethod("initialConfigFunction", self:GetName())
 ]]
 
@@ -1676,8 +1678,24 @@ function sRaidFrames:CreateGroupFrame(id)
 	f.anchor = CreateFrame("Button", "sRaidFramesAnchor"..id, self.master)
 	f.anchor:SetHeight(15)
 	f.anchor:SetWidth(80)
-	f.anchor:SetScript("OnDragStart", function(this) if self.opt.Locked then return end if IsAltKeyDown() then self:StartMovingAll(f, this) end f:StartMoving() end)
-	f.anchor:SetScript("OnDragStop", function(this) if this.multidrag == 1 then self:StopMovingOrSizingAll(this) end f:StopMovingOrSizing(f) self:SavePosition() end)
+
+	f.anchor:SetScript("OnDragStart", function(this) 
+		if self.opt.Locked then 
+			return 
+		end 
+		if IsAltKeyDown() then 
+			self:StartMovingAll(f, this) 
+		end 
+		f:StartMoving() 
+	end)
+
+	f.anchor:SetScript("OnDragStop", function(this) 
+		if this.multidrag == 1 
+			then self:StopMovingOrSizingAll(this) 
+		end f:StopMovingOrSizing(f) 
+		self:SavePosition() 
+	end)
+
 	f.anchor:EnableMouse(true)
 	f.anchor:RegisterForDrag("LeftButton")
 	f.anchor:RegisterForClicks("AnyUp")
@@ -1820,7 +1838,7 @@ function sRaidFrames:PositionLayout(xBuffer, yBuffer, layout)
 		end
 
 		frame:ClearAllPoints()
-		frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", xBuffer+yMod, yBuffer+xMod)
+		frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", xBuffer + yMod, yBuffer + xMod)
 	end
 
 	self:SavePosition()
