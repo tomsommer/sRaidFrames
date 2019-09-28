@@ -572,7 +572,7 @@ sRaidFrames.options = {
 											end
 										end
 									end,
-									dialogControl = "Spell_EditBox",
+									-- dialogControl = "Spell_EditBox",
 									usage = L["<name of debuff>"],
 								},
 								remove = {
@@ -617,7 +617,7 @@ sRaidFrames.options = {
 											end
 										end
 									end,
-									dialogControl = "Spell_EditBox",
+								--	dialogControl = "Spell_EditBox",
 									usage = L["<name of debuff>"],
 								},
 								remove = {
@@ -733,7 +733,7 @@ sRaidFrames.options = {
 											name = L["Buff"],
 											desc = L["Select a buff to configure"],
 											type = "input",
-											dialogControl = "Aura_EditBox",
+										--	dialogControl = "Aura_EditBox",
 											get = function() return sRaidFrames.CurrentExceptionBuff or "" end,
 											set = function(info, value) sRaidFrames.CurrentExceptionBuff = value end,
 											order = 1,
@@ -808,7 +808,7 @@ sRaidFrames.options = {
 											end
 										end
 									end,
-									dialogControl = "Aura_EditBox",
+								--	dialogControl = "Aura_EditBox",
 									usage = L["<name of buff>"],
 								},
 								remove = {
@@ -838,7 +838,7 @@ sRaidFrames.options = {
 							args = {
 								add = {
 									type = "input",
-									dialogControl = "Aura_EditBox",
+								--	dialogControl = "Aura_EditBox",
 									name = L["Add buff"],
 									desc = L["Add a buff"],
 									usage = L["<name of buff>"],
