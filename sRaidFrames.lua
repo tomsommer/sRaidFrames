@@ -1040,7 +1040,7 @@ function sRaidFrames:UpdateAuras(munit)
 			end
 
 			local isMine, buffId
-			isMine = (caster == "player")
+			isMine = (source == "player")
 			if BuffType == "buffs" or (BuffType == "buffsifnotdebuffed" and DebuffSlots == 0) or BuffType == "both" then
 				local displaytype = BuffDisplayOptions[string.lower(name)]
 				if ((displaytype == 3 or not displaytype) or (displaytype ==1 and self.InCombat) or (displaytype == 2 and not self.InCombat)) and ((isMine and (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay) == "own" and duration > 0) or (showOnlyCastable and duration > 0) or (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay)  == "all") and (not HasBuffFilter or (HasBuffFilter and BuffFilter[string.lower(name)])) then
