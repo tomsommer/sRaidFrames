@@ -710,15 +710,16 @@ sRaidFrames.options = {
 										return sRaidFrames.opt.BuffDisplay.default
 									end,
 									set = function(info, value)
-										if tonumber(value) then
-													value = GetSpellInfo(value)
-												end
 										sRaidFrames.opt.BuffDisplay.default = value
 										for unit in pairs(sRaidFrames:GetAllUnits()) do
 											sRaidFrames:UpdateAuras(unit)
 										end
 									end,
-									values = {["own"] = L["Show buffs cast by me"], ["all"] = L["Show all buffs"]},
+									values = {
+										["own"] = L["Show buffs cast by me"],
+										["known"] = "Show buffs I can cast",
+										["all"] = L["Show all buffs"],
+									},
 									-- ["class"] = L["Show buffs cast by anyone from my class"], 
 									order=1,
 								},

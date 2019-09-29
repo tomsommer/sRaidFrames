@@ -975,25 +975,22 @@ function sRaidFrames:UpdateAuras(munit)
 		self:UnsetStatus(munit, "Debuff_Disease")
 
 		local unit = self:GetVehicleUnit(munit)
-		for i = 1, #f.debuffFrames do
+		for i = 1, #f.auraFrames do
 			f["aura".. i]:Hide()
 		end
 
-		for i = 1, #f.buffFrames do
-			f["buff".. i]:Hide()
-		end
-
 		local BuffType = self.opt.BuffType
-		local DebuffSlots = 0
-		local DebuffFilter = self.opt.DebuffFilter
+		local isShowingDebuffs = false
+		local DebuffBacklist = self.opt.DebuffFilter
 		local DebuffWhitelist = self.opt.DebuffWhitelist
 		local ShowOnlyDispellable = self.opt.ShowOnlyDispellable
 		local typeFound = false
+		local frameIndex = 0
 	
 		
 		local i = 1
 		repeat
-			local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitDebuff(unit, i)
+			local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitAura(unit, i, "HARMFUL")
 			if not name then 
 				break 
 			end
@@ -1003,15 +1000,21 @@ function sRaidFrames:UpdateAuras(munit)
 			end
 			
 			if BuffType == "debuffs" or BuffType == "buffsifnotdebuffed" or BuffType == "both" then
-				if not DebuffFilter[name] and ((ShowOnlyDispellable and (self:CanDispell(debuffType) or DebuffWhitelist[name])) or not ShowOnlyDispellable) then
-					DebuffSlots = DebuffSlots + 1
-					local debuffFrame = f["aura".. DebuffSlots]
-					if debuffFrame then
-						debuffFrame.unitid = unit
-						debuffFrame.debuffid = i
-						debuffFrame.count:SetText(count > 1 and count or nil);
-						debuffFrame.texture:SetTexture(icon)
-						debuffFrame:Show()
+				if not DebuffBacklist[name] and (
+					DebuffWhitelist[name] 
+					or (ShowOnlyDispellable and self:CanDispell(debuffType)) 
+					or not ShowOnlyDispellable
+					) then
+					frameIndex = frameIndex + 1
+					local auraFrame = f["aura".. i ]
+					if auraFrame then
+						auraFrame.unitid = unit
+						auraFrame.auraid = i
+						auraFrame.spellid = spellId
+						auraFrame.count:SetText(count > 1 and count or nil);
+						auraFrame.texture:SetTexture(icon)
+						auraFrame:Show()
+						isShowingDebuffs = true
 					end
 				end
 			end
@@ -1020,13 +1023,12 @@ function sRaidFrames:UpdateAuras(munit)
 
 
 		local BuffSlots = 0
-		local BuffFilter = self.opt.BuffFilter
-		local HasBuffFilter = next(BuffFilter) and true or false
-		--local BuffBacklist = self.opt.BuffBlacklist
-		--local CombatBuffBlacklist = self.opt.CombatBuffBlacklist
+		local BuffBlacklist = self.opt.BuffFilter
 		local BuffDisplayOptions = self.opt.BuffDisplayOptions
 		local BuffDisplay = self.opt.BuffDisplay.default
-		local showOnlyCastable = (BuffDisplay == "class") and "RAID" or nil
+		local showOnlyMine = BuffDisplay == "own"
+		local showAllBuffs = BuffDisplay == "all"
+		local showKnownBuffs = BuffDisplay == "known"
 		
 		for name, id in pairs(self.statusSpellTable) do
 			self:UnsetStatus(munit, "Buff_" .. id)
@@ -1034,41 +1036,32 @@ function sRaidFrames:UpdateAuras(munit)
 		
 		local i = 1
 		repeat
-			local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitBuff(unit, i, showOnlyCastable)
+			local buffId
+			local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitAura(unit, i, "HELPFUL")
 			if not name then
 				break
 			end
+			local isMine = source == "player"
 
-			local isMine, buffId
-			isMine = (source == "player")
-			if BuffType == "buffs" or (BuffType == "buffsifnotdebuffed" and DebuffSlots == 0) or BuffType == "both" then
-				local displaytype = BuffDisplayOptions[string.lower(name)]
-				if ((displaytype == 3 or not displaytype) or (displaytype ==1 and self.InCombat) or (displaytype == 2 and not self.InCombat)) and ((isMine and (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay) == "own" and duration > 0) or (showOnlyCastable and duration > 0) or (self.opt.BuffDisplay[string.lower(name)] or BuffDisplay)  == "all") and (not HasBuffFilter or (HasBuffFilter and BuffFilter[string.lower(name)])) then
-					BuffSlots = BuffSlots + 1
-					local buffFrame = f["buff".. BuffSlots]
-					if buffFrame then
-						buffFrame.buffid = i
-						buffFrame.unitid = unit
-						buffFrame.showCastable = showOnlyCastable
-						buffFrame.count:SetText(count > 1 and count or nil)
-						buffFrame.texture:SetTexture(icon)
-						if BuffSlots == 1 and self.opt.BuffType == "both" then
-							local parent
-							local offset
-							if f.aura2:IsShown() then
-								parent = f.aura2;
-							elseif f.aura1:IsShown() then
-								parent = f.aura1;
-							end
-							
-							offset = -4;
-							if not parent then
-								self:SetWHP(buffFrame, buffFrame:GetWidth(), buffFrame:GetHeight(), "TOPRIGHT", f, "TOPRIGHT", offset, offset)
-							else
-								self:SetWHP(buffFrame, buffFrame:GetWidth(), buffFrame:GetHeight(), "TOPRIGHT", parent, "TOPLEFT", 0, 0)
-							end
-						end
-						buffFrame:Show()
+			if BuffType == "buffs" or (BuffType == "buffsifnotdebuffed" and not isShowingDebuffs) or BuffType == "both" then
+				if not BuffBlacklist[name] 
+					and (
+						(showOnlyMine and isMine and duration > 0)
+						or (showKnownBuffs and canApplyAura)
+						or (showOnlyCastable and duration > 0)
+						or (showAllBuffs)
+						) then
+
+					frameIndex = frameIndex + 1
+					local auraFrame = f["aura".. frameIndex]
+					if auraFrame then
+						auraFrame.auraid = i
+						auraFrame.unitid = unit
+						auraFrame.spellid = spellId
+						auraFrame.showCastable = showOnlyCastable
+						auraFrame.count:SetText(count > 1 and count or nil)
+						auraFrame.texture:SetTexture(icon)
+						auraFrame:Show()
 					end
 				end
 			end
@@ -1363,38 +1356,11 @@ function sRaidFrames:UpdateFrameCache()
 	self:UpdateAllUnits()
 end
 
-local function BuffFrame_OnEnter(this)
-	if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.BuffTooltipMethod) then
-		GameTooltip:SetOwner(this)
-		GameTooltip:SetUnitBuff(this.unitid, this.buffid, this.showCastable)
-	end
-end
-
-local function BuffFrame_OnLeave(this)
-	GameTooltip:Hide()
-end
-
-local function DebuffFrame_OnEnter(this)
-	if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.DebuffTooltipMethod) then
-		GameTooltip:SetOwner(this)
-		GameTooltip:SetUnitDebuff(this.unitid, this.debuffid)
-	end
-end
-
-local function DebuffFrame_OnLeave(this)
-	GameTooltip:Hide()
-end
-
-local DebuffFrame_OnLeave = BuffFrame_OnLeave
-
 local function UnitFrame_OnEnter(this)
 	if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.UnitTooltipMethod) then
 		sRaidFrames:UnitTooltip(this)
 	end
 end
-
-local UnitFrame_OnLeave = BuffFrame_OnLeave
-
 
 -- Adapts frames created by Secure Headers
 function sRaidFrames:CreateUnitFrame(...)
@@ -1405,55 +1371,52 @@ function sRaidFrames:CreateUnitFrame(...)
 	--f:SetAttribute("allowVehicleTarget", true)
 
 	f:SetScript("OnEnter", UnitFrame_OnEnter)
-	f:SetScript("OnLeave", UnitFrame_OnLeave)
+	f:SetScript("OnLeave", function(this) 
+		GameTooltip:Hide()
+	end)
 
 	f.title = f:CreateFontString(nil, "ARTWORK")
 	f.title:SetFontObject(GameFontNormalSmall)
 	f.title:SetJustifyH("LEFT")
 
-	f.debuffFrames = {}
-	f.buffFrames = {}
+	f.auraFrames = {}
 
-	for i = 1, 2 do
-		local debuffFrame = CreateFrame("Button", nil, f)
-		debuffFrame:SetScript("OnEnter", DebuffFrame_OnEnter);
-		debuffFrame:SetScript("OnLeave", DebuffFrame_OnLeave)
-		debuffFrame.texture = debuffFrame:CreateTexture(nil, "ARTWORK")
-		debuffFrame.texture:SetAllPoints(debuffFrame);
-		debuffFrame.count = debuffFrame:CreateFontString(nil, "OVERLAY")
-		debuffFrame.count:SetFontObject(GameFontHighlightSmallOutline)
-		debuffFrame.count:SetJustifyH("CENTER")
-		debuffFrame.count:SetPoint("CENTER", debuffFrame, "CENTER", 0, 0);
-		debuffFrame:Hide()
-		local debuffTimer = debuffFrame:CreateFontString(nil, "ARTWORK")
+	for i = 1, 3 do
+		local auraFrame = CreateFrame("Button", nil, f)
+		auraFrame.texture = auraFrame:CreateTexture(nil, "ARTWORK")
+		auraFrame.texture:SetAllPoints(auraFrame);
+		auraFrame.count = auraFrame:CreateFontString(nil, "OVERLAY")
+		auraFrame.count:SetFontObject(GameFontHighlightSmallOutline)
+		auraFrame.count:SetJustifyH("CENTER")
+		auraFrame.count:SetPoint("CENTER", auraFrame, "CENTER", 0, 0);
+		auraFrame:SetScript("OnEnter", function (this)
+			if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.DebuffTooltipMethod) then
+				GameTooltip:SetOwner(this)
+				GameTooltip:SetUnitAura(this.unitid, this.auraid)
+			end
+		end)
+
+		auraFrame:SetScript("OnClick", function (this)
+			if IsAltKeyDown() then
+				-- TODO: Blacklist
+			end
+		end)
+
+		auraFrame:SetScript("OnLeave", function(this) 
+				GameTooltip:Hide()
+		end)
+
+		auraFrame:Hide()
+
+		local debuffTimer = auraFrame:CreateFontString(nil, "ARTWORK")
 		debuffTimer:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
 		debuffTimer.fontsize = 12
 		debuffTimer:SetTextColor(0.7, 0.7, 0)
 		debuffTimer:ClearAllPoints()
-		debuffTimer:SetAllPoints(debuffFrame)
-		tinsert(f.debuffFrames, debuffFrame)
-		f["aura"..i] = debuffFrame
-	end
-
-	for i = 1, 3 do
-		local buffFrame = CreateFrame("Button", nil, f)
-		buffFrame:SetScript("OnEnter", BuffFrame_OnEnter)
-		buffFrame:SetScript("OnLeave", BuffFrame_OnLeave)
-		buffFrame.texture = buffFrame:CreateTexture(nil, "ARTWORK")
-		buffFrame.texture:SetAllPoints(buffFrame)
-		buffFrame.count = buffFrame:CreateFontString(nil, "OVERLAY")
-		buffFrame.count:SetFontObject(GameFontHighlightSmallOutline)
-		buffFrame.count:SetJustifyH("CENTER")
-		buffFrame.count:SetPoint("CENTER", buffFrame, "CENTER", 0, 0);
-		buffFrame:Hide()
-		local buffTimer = buffFrame:CreateFontString(nil, "ARTWORK")
-		buffTimer:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
-		buffTimer.fontsize = 9
-		buffTimer:SetTextColor(0.7, 0.7, 0)
-		buffTimer:ClearAllPoints()
-		buffTimer:SetAllPoints(buffFrame)
-		tinsert(f.buffFrames, buffFrame)
-		f["buff"..i] = buffFrame
+		debuffTimer:SetAllPoints(auraFrame)
+		
+		tinsert(f.auraFrames, auraFrame)
+		f["aura"..i] = auraFrame
 	end
 
 	local texture = Media:Fetch("statusbar", self.opt.Texture)
@@ -1479,14 +1442,12 @@ function sRaidFrames:CreateUnitFrame(...)
 	f.statustext:SetFontObject(GameFontHighlightSmall)
 	f.statustext:SetJustifyH("CENTER")
 
-	f:ClearAllPoints()
+	--f:ClearAllPoints()
 	self:SetWHP(f, 80, 34)
 	self:SetWHP(f.title, f:GetWidth() - 6, 13, "TOPLEFT", f, "TOPLEFT",  3, -3)
 	self:SetWHP(f.aura1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -3, -3)
 	self:SetWHP(f.aura2, 13, 13, "RIGHT", f.aura1, "LEFT", 0, 0)
-	self:SetWHP(f.buff1, 13, 13, "TOPRIGHT", f, "TOPRIGHT", -3, -3)
-	self:SetWHP(f.buff2, 13, 13, "RIGHT", f.buff1, "LEFT", 0, 0)
-	self:SetWHP(f.buff3, 13, 13, "RIGHT", f.buff2, "LEFT", 0, 0)
+	self:SetWHP(f.aura3, 13, 13, "RIGHT", f.aura2, "LEFT", 0, 0)
 	self:SetWHP(f.hpbar, f.title:GetWidth(), 12, "TOPLEFT", f.title, "BOTTOMLEFT", 0, 0)
 	self:SetWHP(f.mpbar, f.title:GetWidth(), 4, "TOPLEFT", f.hpbar, "BOTTOMLEFT", 0, 0)
 
