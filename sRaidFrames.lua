@@ -979,12 +979,23 @@ function sRaidFrames:UpdateAuras(munit)
 			f["aura".. i]:Hide()
 		end
 
+		for name, id in pairs(self.statusSpellTable) do
+			self:UnsetStatus(munit, "Buff_" .. id)
+		end
+
 		local BuffType = self.opt.BuffType
-		local isShowingDebuffs = false
+	
 		local DebuffBacklist = self.opt.DebuffFilter
 		local DebuffWhitelist = self.opt.DebuffWhitelist
 		local ShowOnlyDispellable = self.opt.ShowOnlyDispellable
+		local BuffBlacklist = self.opt.BuffFilter
+		local BuffDisplayOptions = self.opt.BuffDisplayOptions
+		local BuffDisplay = self.opt.BuffDisplay.default
+		local showOnlyMine = BuffDisplay == "own"
+		local showAllBuffs = BuffDisplay == "all"
+		local showKnownBuffs = BuffDisplay == "known"
 		local typeFound = false
+		local isShowingDebuffs = false
 		local frameIndex = 0
 	
 		
@@ -1005,11 +1016,12 @@ function sRaidFrames:UpdateAuras(munit)
 					or (ShowOnlyDispellable and self:CanDispell(debuffType)) 
 					or not ShowOnlyDispellable
 					) then
-					frameIndex = frameIndex + 1
-					local auraFrame = f["aura".. i ]
+					local auraFrame = f["aura".. (frameIndex + 1)]
 					if auraFrame then
+						frameIndex = frameIndex + 1
 						auraFrame.unitid = unit
 						auraFrame.auraid = i
+						auraFrame.filter = "HARMFUL"
 						auraFrame.spellid = spellId
 						auraFrame.count:SetText(count > 1 and count or nil);
 						auraFrame.texture:SetTexture(icon)
@@ -1021,19 +1033,6 @@ function sRaidFrames:UpdateAuras(munit)
 			i = i + 1
 		until not name
 
-
-		local BuffSlots = 0
-		local BuffBlacklist = self.opt.BuffFilter
-		local BuffDisplayOptions = self.opt.BuffDisplayOptions
-		local BuffDisplay = self.opt.BuffDisplay.default
-		local showOnlyMine = BuffDisplay == "own"
-		local showAllBuffs = BuffDisplay == "all"
-		local showKnownBuffs = BuffDisplay == "known"
-		
-		for name, id in pairs(self.statusSpellTable) do
-			self:UnsetStatus(munit, "Buff_" .. id)
-		end
-		
 		local i = 1
 		repeat
 			local buffId
@@ -1052,11 +1051,13 @@ function sRaidFrames:UpdateAuras(munit)
 						or (showAllBuffs)
 						) then
 
-					frameIndex = frameIndex + 1
-					local auraFrame = f["aura".. frameIndex]
+					
+					local auraFrame = f["aura".. (frameIndex + 1)]
 					if auraFrame then
+						frameIndex = frameIndex + 1
 						auraFrame.auraid = i
 						auraFrame.unitid = unit
+						auraFrame.filter = "HELPFUL"
 						auraFrame.spellid = spellId
 						auraFrame.showCastable = showOnlyCastable
 						auraFrame.count:SetText(count > 1 and count or nil)
@@ -1392,7 +1393,7 @@ function sRaidFrames:CreateUnitFrame(...)
 		auraFrame:SetScript("OnEnter", function (this)
 			if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.DebuffTooltipMethod) then
 				GameTooltip:SetOwner(this)
-				GameTooltip:SetUnitAura(this.unitid, this.auraid)
+				GameTooltip:SetUnitAura(this.unitid, this.auraid, this.filter)
 			end
 		end)
 
@@ -1414,7 +1415,7 @@ function sRaidFrames:CreateUnitFrame(...)
 		debuffTimer:SetTextColor(0.7, 0.7, 0)
 		debuffTimer:ClearAllPoints()
 		debuffTimer:SetAllPoints(auraFrame)
-		
+
 		tinsert(f.auraFrames, auraFrame)
 		f["aura"..i] = auraFrame
 	end
