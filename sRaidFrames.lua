@@ -1341,12 +1341,6 @@ function sRaidFrames:UpdateFrameCache()
 	self:UpdateAllUnits()
 end
 
-local function UnitFrame_OnEnter(this)
-	if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.UnitTooltipMethod) then
-		sRaidFrames:UnitTooltip(this)
-	end
-end
-
 local function sRaidFrames_OnAttributeChanged(frame, name, value)
 	if name == "unit" then
 		ShouldUpdateFrameCache = true
@@ -1366,7 +1360,11 @@ function sRaidFrames:CreateUnitFrame(...)
 	--f:SetAttribute("allowVehicleTarget", true)
 	f:HookScript("OnAttributeChanged", sRaidFrames_OnAttributeChanged)
 
-	f:SetScript("OnEnter", UnitFrame_OnEnter)
+	f:SetScript("OnEnter", function(this) 
+		if sRaidFrames:QueryTooltipDisplay(sRaidFrames.opt.UnitTooltipMethod) then
+			sRaidFrames:UnitTooltip(this)
+		end
+	end)
 	f:SetScript("OnLeave", function(this) 
 		GameTooltip:Hide()
 	end)
