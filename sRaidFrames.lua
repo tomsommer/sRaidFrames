@@ -1326,22 +1326,6 @@ function sRaidFrames:UnitTooltip(frame)
 end
 
 local ShouldUpdateFrameCache = false
-local function sRaidFrames_OnAttributeChanged(frame, name, value)
-	if name == "unit" then
-		ShouldUpdateFrameCache = true
-
-		if value then
-			frame.id = select(3, value:find("(%d+)"))
-		end
-	end
-end
-
-local function sRaidFrames_InitUnitFrame(header, frameName)
-	local frame = _G[frameName]
-	frame:SetScript("OnAttributeChanged", sRaidFrames_OnAttributeChanged)
-	sRaidFrames:CreateUnitFrame(frame)
-end
-
 function sRaidFrames:UpdateFrameCache()
 	self.FramesByUnit = {}
 	for k, frame in pairs(self.frames) do
@@ -1363,6 +1347,16 @@ local function UnitFrame_OnEnter(this)
 	end
 end
 
+local function sRaidFrames_OnAttributeChanged(frame, name, value)
+	if name == "unit" then
+		ShouldUpdateFrameCache = true
+
+		if value then
+			frame.id = select(3, value:find("(%d+)"))
+		end
+	end
+end
+
 -- Adapts frames created by Secure Headers
 function sRaidFrames:CreateUnitFrame(...)
 	local f = select("#", ...) > 1 and CreateFrame(...) or select(1, ...)
@@ -1370,6 +1364,7 @@ function sRaidFrames:CreateUnitFrame(...)
 	f:RegisterForClicks("AnyUp")
 
 	--f:SetAttribute("allowVehicleTarget", true)
+	f:HookScript("OnAttributeChanged", sRaidFrames_OnAttributeChanged)
 
 	f:SetScript("OnEnter", UnitFrame_OnEnter)
 	f:SetScript("OnLeave", function(this) 
@@ -1616,6 +1611,12 @@ local sRaidFrames_SecureInitUnitFrame = [[
 
 	header:CallMethod("initialConfigFunction", self:GetName())
 ]]
+
+local function sRaidFrames_InitUnitFrame(header, frameName)
+	local frame = _G[frameName]
+
+	sRaidFrames:CreateUnitFrame(frame)
+end
 
 function sRaidFrames:CreateGroupFrame(id)
 	local f = CreateFrame("Frame", "sRaidFramesGroupBase".. id, self.master)
